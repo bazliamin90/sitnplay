@@ -1,0 +1,763 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<script src="header.js"></script>
+<title>Kakuro</title>
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --paper: #E4DDC8;
+    --card: #EDE7D6;
+    --panel: #F1ECDD;
+    --ink: #2B2724;
+    --ink-soft: #6B645A;
+    --line: #C9C0A6;
+    --line-soft: #DCD5BE;
+    --rust: #B5512E;
+    --rust-dark: #8F3E22;
+    --black-pill: #1F1B17;
+    --cell-bg: #F7F3E7;
+    --cell-border: #C9C0A6;
+    --cell-focus: #F0DCC0;
+    --cell-focus-border: var(--rust);
+    --cell-correct: #C9D8B8;
+    --cell-correct-border: #8FA66E;
+    --cell-error: #E2B6AA;
+    --cell-error-border: var(--rust-dark);
+    --cell-locked-bg: #DCD2B6;
+    --block-bg: #2B2724;
+    --block-clue-bg: #353029;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  html { -webkit-text-size-adjust: 100%; }
+  body {
+    font-family: 'JetBrains Mono', monospace;
+    background: var(--paper);
+    color: var(--ink);
+    min-height: 100vh;
+    display: flex; flex-direction: column; align-items: center; justify-content: flex-start;
+    _padding: 28px 14px 50px;
+    overflow-y: scroll;
+  }
+
+  .app-card {
+    width: 100%; max-width: 640px;
+    background: var(--card);
+    border: 1.5px solid var(--line);
+    border-radius: 26px;
+    padding: 34px 30px 30px;
+    margin: 2rem auto;
+    box-shadow: 0 18px 40px -10px rgba(43,39,36,0.18), 0 2px 0 rgba(255,255,255,0.4) inset;
+  }
+
+  h1 {
+    font-family: Georgia, 'Times New Roman', serif;
+    font-weight: 700;
+    font-size: 2.6rem; color: var(--ink);
+    text-align: center; letter-spacing: 0.5px;
+  }
+  h1 .dot { color: var(--rust); }
+  .subtitle {
+    text-align: center;
+    color: var(--ink-soft); font-size: 0.78rem; font-weight: 500;
+    letter-spacing: 2.5px; text-transform: uppercase;
+    margin-top: 8px; margin-bottom: 22px;
+  }
+  .hr {
+    height: 1px; background: var(--line); border: none;
+    margin-bottom: 22px;
+  }
+
+  /* SEGMENTED PILL CONTROLS */
+  .segmented {
+    display: inline-flex; border: 1.5px solid var(--ink); border-radius: 14px;
+    overflow: hidden; background: var(--panel);
+  }
+  .segmented button {
+    font-family: 'JetBrains Mono', monospace; font-weight: 700; font-size: 0.95rem;
+    color: var(--ink); background: transparent; border: none;
+    padding: 13px 18px; cursor: pointer; white-space: nowrap;
+    transition: background 0.15s, color 0.15s;
+    border-right: 1.5px solid var(--ink);
+  }
+  .segmented button:last-child { border-right: none; }
+  .segmented button.active { background: var(--black-pill); color: #F7F3E7; }
+  .segmented button:not(.active):hover { background: rgba(0,0,0,0.05); }
+
+  /* MODE SELECT */
+  #mode-screen { display: flex; flex-direction: column; gap: 18px; width: 100%; }
+  .mode-row { display: flex; justify-content: center; }
+  .mode-row .segmented { width: 100%; max-width: 100%; flex-wrap: wrap; }
+  .mode-row .segmented button { flex: 1; min-width: 100px; }
+  .mode-info {
+    text-align: center; color: var(--ink-soft); font-size: 0.82rem;
+    line-height: 1.6;
+  }
+  .mode-info .pf-note { color: var(--rust-dark); font-weight: 600; }
+  .start-btn-wrap { display: flex; justify-content: center; margin-top: 4px; }
+  .pill-btn {
+    font-family: 'JetBrains Mono', monospace; font-weight: 700; font-size: 0.95rem;
+    color: var(--ink); background: var(--panel); border: 1.5px solid var(--ink);
+    border-radius: 14px; padding: 13px 26px; cursor: pointer;
+    transition: background 0.15s, transform 0.06s;
+  }
+  .pill-btn:hover { background: rgba(0,0,0,0.05); }
+  .pill-btn:active { transform: translateY(1px); }
+  .pill-btn.dark { background: var(--black-pill); color: #F7F3E7; border-color: var(--black-pill); }
+  .pill-btn.dark:hover { background: #322C26; }
+  .pill-btn.rust { background: var(--rust); color: #fff; border-color: var(--rust-dark); }
+  .pill-btn.rust:hover { background: var(--rust-dark); }
+
+  /* GAME SCREEN */
+  #game-screen { display: none; width: 100%; flex-direction: column; gap: 18px; }
+  .game-header {
+    display: flex; align-items: center; justify-content: space-between; gap: 10px;
+    flex-wrap: wrap;
+  }
+  .back-link {
+    font-family: 'JetBrains Mono', monospace; font-weight: 700; font-size: 0.85rem;
+    color: var(--ink-soft); background: none; border: none; cursor: pointer;
+    text-decoration: underline; text-underline-offset: 3px; padding: 4px 0;
+  }
+  .back-link:hover { color: var(--ink); }
+  .difficulty-tag {
+    font-family: 'JetBrains Mono', monospace; font-weight: 700; font-size: 0.78rem;
+    letter-spacing: 1.5px; text-transform: uppercase;
+    padding: 6px 14px; border-radius: 20px; border: 1.5px solid var(--ink);
+    background: var(--black-pill); color: #F7F3E7;
+  }
+
+  .controls-row { display: flex; gap: 10px; flex-wrap: wrap; align-items: center; justify-content: center; }
+
+  .stat-pill {
+    border: 1.5px solid var(--line); background: var(--panel);
+    border-radius: 12px; padding: 9px 14px;
+    display: flex; align-items: center; gap: 7px;
+  }
+  .stat-label {
+    font-size: 0.68rem; font-weight: 700; letter-spacing: 1px; text-transform: uppercase;
+    color: var(--ink-soft);
+  }
+  .stat-value { font-weight: 800; font-size: 0.95rem; color: var(--ink); }
+
+  .action-btn {
+    font-family: 'JetBrains Mono', monospace; font-weight: 700; font-size: 0.85rem;
+    border: 1.5px solid var(--ink); border-radius: 12px; padding: 10px 16px;
+    cursor: pointer; background: var(--panel); color: var(--ink);
+    transition: background 0.15s, transform 0.06s; white-space: nowrap;
+  }
+  .action-btn:hover { background: rgba(0,0,0,0.05); }
+  .action-btn:active { transform: translateY(1px); }
+  .action-btn.primary { background: var(--black-pill); color: #F7F3E7; border-color: var(--black-pill); }
+  .action-btn.primary:hover { background: #322C26; }
+  .action-btn.warn { background: var(--rust); color: #fff; border-color: var(--rust-dark); }
+  .action-btn.warn:hover { background: var(--rust-dark); }
+
+  /* NUMPAD */
+  .numpad-bar {
+    display: flex; gap: 6px; align-items: center; justify-content: center; flex-wrap: wrap;
+  }
+  .numpad-btn {
+    font-family: 'JetBrains Mono', monospace; font-weight: 700; font-size: 1.1rem;
+    color: var(--ink); background: var(--panel);
+    border: 1.5px solid var(--ink); border-radius: 10px;
+    width: 44px; height: 44px;
+    cursor: pointer; transition: background 0.12s, transform 0.06s;
+    display: flex; align-items: center; justify-content: center; flex-shrink: 0;
+  }
+  .numpad-btn:hover { background: rgba(0,0,0,0.06); }
+  .numpad-btn:active { transform: translateY(1px); }
+  .numpad-btn.clear-btn {
+    background: var(--rust); border-color: var(--rust-dark); color: #fff;
+    font-size: 0.85rem; width: auto; padding: 0 14px;
+  }
+  .numpad-btn.clear-btn:hover { background: var(--rust-dark); }
+
+  /* GRID */
+  .grid-container {
+    background: var(--panel); border: 1.5px solid var(--line);
+    border-radius: 18px; padding: 16px;
+    overflow: auto;
+    display: flex; justify-content: center;
+  }
+  #kakuro-grid { border-collapse: collapse; border-spacing: 0; margin: auto; }
+  #kakuro-grid td { padding: 1.5px; }
+
+  .cell-black, .cell-clue, .cell-input {
+    width: var(--cs, 52px); height: var(--cs, 52px);
+  }
+  .cell-black {
+    background: var(--block-bg); border-radius: 4px;
+  }
+  .cell-black.corner { background: var(--block-bg); opacity: 0.85; }
+  .cell-clue {
+    position: relative;
+    background: var(--block-clue-bg);
+    border-radius: 4px; overflow: hidden;
+  }
+  .clue-slash { position: absolute; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none; }
+  .clue-down {
+    position: absolute; bottom: 2px; right: 4px;
+    font-family: 'JetBrains Mono', monospace; font-weight: 700; font-size: var(--clue-fs, 0.75rem);
+    color: #D8CCAE; line-height: 1;
+  }
+  .clue-across {
+    position: absolute; top: 2px; left: 4px;
+    font-family: 'JetBrains Mono', monospace; font-weight: 700; font-size: var(--clue-fs, 0.75rem);
+    color: #E8DCC0; line-height: 1;
+  }
+  .cell-input {
+    background: var(--cell-bg); border: 1.5px solid var(--cell-border);
+    border-radius: 5px; cursor: pointer;
+    transition: background 0.12s, border-color 0.12s; position: relative;
+  }
+  .cell-input:hover  { background: #FBF7EC; border-color: #B5A87E; }
+  .cell-input.selected  { background: var(--cell-focus); border-color: var(--cell-focus-border); box-shadow: 0 0 0 2px rgba(181,81,46,0.3); z-index: 3; }
+  .cell-input.highlight { background: #F5EFDC; border-color: #D9CDA2; }
+  .cell-input.correct   { background: var(--cell-correct); border-color: var(--cell-correct-border); }
+  .cell-input.error     { background: var(--cell-error); border-color: var(--cell-error-border); animation: shake 0.3s; }
+  .cell-input.locked {
+    background: var(--cell-locked-bg); border-color: #B3A87E; cursor: default;
+  }
+  .cell-input.locked:hover { background: var(--cell-locked-bg); border-color: #B3A87E; }
+  .cell-input.locked .cell-value { color: var(--ink-soft); }
+  .cell-value {
+    font-family: 'JetBrains Mono', monospace; font-weight: 700; font-size: var(--val-fs, 1.3rem);
+    color: var(--ink); width: 100%; height: 100%;
+    display: flex; align-items: center; justify-content: center; user-select: none;
+  }
+  @keyframes shake {
+    0%,100%{transform:translateX(0)} 25%{transform:translateX(-4px)} 75%{transform:translateX(4px)}
+  }
+
+  .message-bar {
+    min-height: 24px; margin-top: 8px;
+    font-weight: 700; font-size: 0.85rem;
+    text-align: center; color: var(--rust-dark);
+  }
+  .message-bar.good { color: #5C7A3E; }
+
+  .hint-text {
+    text-align: center; color: var(--ink-soft); font-size: 0.75rem;
+    letter-spacing: 0.5px;
+  }
+
+  /* WIN OVERLAY */
+  .win-overlay {
+    display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+    background: rgba(43,39,36,0.55); align-items: center; justify-content: center;
+    z-index: 100; padding: 20px;
+  }
+  .win-overlay.show { display: flex; }
+  .win-box {
+    background: var(--card); border: 1.5px solid var(--line); border-radius: 22px;
+    padding: 36px 38px; text-align: center; max-width: 360px;
+    box-shadow: 0 18px 40px -10px rgba(0,0,0,0.4);
+  }
+  .win-title {
+    font-family: Georgia, serif; font-weight: 700; font-size: 1.9rem; color: var(--ink);
+    margin-bottom: 8px;
+  }
+  .win-title .dot { color: var(--rust); }
+  .win-sub { color: var(--ink-soft); font-size: 0.85rem; font-weight: 500; margin-bottom: 22px; }
+  .win-btns { display: flex; gap: 10px; justify-content: center; flex-wrap: wrap; }
+
+  /* RESPONSIVE */
+  @media (max-width: 600px) {
+    .app-card { padding: 24px 16px 22px; border-radius: 20px; }
+    h1 { font-size: 2.1rem; }
+    .subtitle { font-size: 0.66rem; letter-spacing: 1.8px; }
+    .segmented button { padding: 11px 10px; font-size: 0.82rem; }
+    .mode-row .segmented button { min-width: 0; }
+    .controls-row { gap: 8px; }
+    .action-btn { padding: 9px 12px; font-size: 0.78rem; }
+    .stat-pill { padding: 7px 11px; }
+    .numpad-btn { width: 38px; height: 38px; font-size: 0.95rem; }
+    .grid-container { padding: 10px; }
+  }
+  @media (max-width: 400px) {
+    h1 { font-size: 1.8rem; }
+    .difficulty-tag { font-size: 0.68rem; padding: 5px 10px; }
+    .back-link { font-size: 0.78rem; }
+  }
+</style>
+</head>
+<body>
+<header3-component></header3-component>
+<div class="app-card">
+  <h1>Kakuro<span class="dot">.</span></h1>
+  <p class="subtitle">A number-sum puzzle, freshly drawn</p>
+  <hr class="hr">
+
+  <!-- MODE SELECT -->
+  <div id="mode-screen">
+    <div class="mode-row">
+      <div class="segmented" id="mode-segmented">
+        <button class="active" data-mode="easy">Easy (6&times;6)</button>
+        <button data-mode="medium">Medium (8&times;8)</button>
+        <button data-mode="hard">Hard (11&times;11)</button>
+      </div>
+    </div>
+    <div class="mode-info" id="mode-info">
+      Fill each run so the digits sum to the clue &mdash; no repeats within a run.
+      <br><span class="pf-note" id="pf-note">A few cells start filled in to help you get going.</span>
+    </div>
+    <div class="start-btn-wrap">
+      <button class="pill-btn dark" id="start-btn" onclick="startGame()">Start Puzzle</button>
+    </div>
+  </div>
+
+  <!-- GAME SCREEN -->
+  <div id="game-screen">
+    <div class="game-header">
+      <button class="back-link" onclick="goBack()">&larr; Modes</button>
+      <span class="difficulty-tag" id="difficulty-badge">Easy</span>
+    </div>
+
+    <div class="controls-row">
+      <div class="stat-pill">
+        <span class="stat-label">Errors</span>
+        <span class="stat-value" id="error-count">0</span>
+      </div>
+      <div class="stat-pill">
+        <span class="stat-label">Filled</span>
+        <span class="stat-value" id="filled-count">0 / 0</span>
+      </div>
+    </div>
+    <div class="controls-row">
+      <button class="action-btn primary" onclick="checkPuzzle()">Check</button>
+      <button class="action-btn warn" onclick="revealPuzzle()">Reveal</button>
+      <button class="action-btn" onclick="newGame()">New</button>
+    </div>
+
+    <!-- Grid -->
+    <div class="grid-container">
+      <table id="kakuro-grid"></table>
+    </div>
+    <div class="message-bar" id="message-bar"></div>
+
+    <!-- Numpad -->
+    <div class="numpad-bar" id="numpad"></div>
+    <div class="hint-text">Click a cell, then tap a number &nbsp;|&nbsp; Locked cells are pre-filled</div>
+  </div>
+</div>
+
+<!-- WIN -->
+<div class="win-overlay" id="win-overlay">
+  <div class="win-box">
+    <div class="win-title">Solved<span class="dot">.</span></div>
+    <div class="win-sub" id="win-sub">Puzzle solved!</div>
+    <div class="win-btns">
+      <button class="pill-btn dark" onclick="newGame();closeWin()">Play Again</button>
+      <button class="pill-btn" onclick="goBack();closeWin()">Menu</button>
+    </div>
+  </div>
+</div>
+
+<script>
+// DIFFICULTY CONFIG
+const MODES = {
+  easy:   { size: 6,  cellSize: 52, clueFontSize: '0.74rem', valFontSize: '1.3rem', blackRate: 0.18, label: 'Easy',   prefillRate: 0.35 },
+  medium: { size: 8,  cellSize: 46, clueFontSize: '0.68rem', valFontSize: '1.15rem', blackRate: 0.22, label: 'Medium', prefillRate: 0.20 },
+  hard:   { size: 11, cellSize: 36, clueFontSize: '0.58rem', valFontSize: '1rem', blackRate: 0.26, label: 'Hard',   prefillRate: 0.10 },
+};
+
+let currentMode = 'easy';
+let SIZE = 6;
+let puzzle = null;
+let selectedCell = null;
+let userGrid = [];
+let lockedGrid = [];
+let errorCount = 0;
+
+// MODE SEGMENTED CONTROL
+document.getElementById('mode-segmented').addEventListener('click', (e) => {
+  const btn = e.target.closest('button');
+  if (!btn) return;
+  document.querySelectorAll('#mode-segmented button').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  currentMode = btn.dataset.mode;
+});
+
+// SCREEN NAV
+function startGame() {
+  document.getElementById('mode-screen').style.display = 'none';
+  document.getElementById('game-screen').style.display = 'flex';
+  const cfg = MODES[currentMode];
+  const badge = document.getElementById('difficulty-badge');
+  badge.textContent = cfg.label;
+  SIZE = cfg.size;
+  fitGridToScreen(cfg);
+  newGame();
+}
+
+function fitGridToScreen(cfg) {
+  const viewportW = Math.min(window.innerWidth, 640);
+  const available = viewportW - 88; // app-card padding + grid-container padding
+  const perCellOverhead = 6; // td padding (1.5px*2) + cell border (1.5px*2)
+  const maxCell = Math.floor(available / cfg.size) - perCellOverhead;
+  const cell = Math.max(20, Math.min(cfg.cellSize, maxCell));
+  document.documentElement.style.setProperty('--cs', cell + 'px');
+  const scaleRatio = cell / cfg.cellSize;
+  document.documentElement.style.setProperty('--clue-fs', (parseFloat(cfg.clueFontSize) * Math.max(0.65, scaleRatio)) + 'rem');
+  document.documentElement.style.setProperty('--val-fs', (parseFloat(cfg.valFontSize) * Math.max(0.7, scaleRatio)) + 'rem');
+}
+
+window.addEventListener('resize', () => {
+  if (document.getElementById('game-screen').style.display === 'flex') {
+    fitGridToScreen(MODES[currentMode]);
+  }
+});
+
+function goBack() {
+  document.getElementById('game-screen').style.display = 'none';
+  document.getElementById('mode-screen').style.display = 'flex';
+}
+
+// RANDOM HELPERS
+function rng(min, max) { return Math.floor(Math.random() * (max - min + 1)) + min; }
+function shuffle(arr) {
+  for (let i = arr.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [arr[i], arr[j]] = [arr[j], arr[i]];
+  }
+  return arr;
+}
+
+// PUZZLE GENERATOR
+function generatePuzzle(n, blackRate) {
+  const layout = generateLayout(n, blackRate);
+  const solution = fillSolution(layout, n);
+  if (!solution) return null;
+  const clues = computeClues(layout, solution, n);
+  return { layout, solution, clues };
+}
+
+function generateLayout(n, blackRate) {
+  let layout = Array.from({length: n}, () => Array(n).fill(1));
+  for (let i = 0; i < n; i++) { layout[0][i] = 0; layout[i][0] = 0; }
+  for (let r = 1; r < n; r++)
+    for (let c = 1; c < n; c++)
+      if (Math.random() < blackRate) layout[r][c] = 0;
+  let changed = true;
+  while (changed) {
+    changed = false;
+    for (let r = 1; r < n; r++) {
+      for (let c = 1; c < n; c++) {
+        if (layout[r][c] !== 1) continue;
+        if (hRunLen(layout, r, c, n) === 1 || vRunLen(layout, r, c, n) === 1) {
+          layout[r][c] = 0; changed = true;
+        }
+      }
+    }
+  }
+  let whites = 0;
+  for (let r = 1; r < n; r++) for (let c = 1; c < n; c++) if (layout[r][c] === 1) whites++;
+  if (whites < Math.floor(n * n * 0.25)) return generateLayout(n, blackRate);
+  return layout;
+}
+
+function hRunLen(layout, r, c, n) {
+  let s = c; while (s > 0 && layout[r][s-1] === 1) s--;
+  let l = 0, i = s; while (i < n && layout[r][i] === 1) { l++; i++; }
+  return l;
+}
+function vRunLen(layout, r, c, n) {
+  let s = r; while (s > 0 && layout[s-1][c] === 1) s--;
+  let l = 0, i = s; while (i < n && layout[i][c] === 1) { l++; i++; }
+  return l;
+}
+
+function getHorizontalRuns(layout, n) {
+  const runs = [];
+  for (let r = 1; r < n; r++) {
+    let c = 1;
+    while (c < n) {
+      if (layout[r][c] === 1) {
+        const cells = [];
+        while (c < n && layout[r][c] === 1) { cells.push([r, c]); c++; }
+        runs.push({ cells, clueRow: r, clueCol: cells[0][1]-1 });
+      } else c++;
+    }
+  }
+  return runs;
+}
+function getVerticalRuns(layout, n) {
+  const runs = [];
+  for (let c = 1; c < n; c++) {
+    let r = 1;
+    while (r < n) {
+      if (layout[r][c] === 1) {
+        const cells = [];
+        while (r < n && layout[r][c] === 1) { cells.push([r, c]); r++; }
+        runs.push({ cells, clueRow: cells[0][0]-1, clueCol: c });
+      } else r++;
+    }
+  }
+  return runs;
+}
+
+function fillSolution(layout, n) {
+  const sol = Array.from({length: n}, () => Array(n).fill(0));
+  const whiteCells = [];
+  for (let r = 1; r < n; r++) for (let c = 1; c < n; c++) if (layout[r][c] === 1) whiteCells.push([r,c]);
+  const hRuns = getHorizontalRuns(layout, n);
+  const vRuns = getVerticalRuns(layout, n);
+  const cH = {}, cV = {};
+  hRuns.forEach((run, idx) => run.cells.forEach(([r,c]) => cH[`${r},${c}`] = idx));
+  vRuns.forEach((run, idx) => run.cells.forEach(([r,c]) => cV[`${r},${c}`] = idx));
+  for (const run of [...hRuns, ...vRuns]) if (run.cells.length > 9 || run.cells.length < 2) return null;
+  return backfill(sol, whiteCells, 0, hRuns, vRuns, cH, cV) ? sol : null;
+}
+
+function backfill(sol, cells, idx, hRuns, vRuns, cH, cV) {
+  if (idx === cells.length) return true;
+  const [r, c] = cells[idx];
+  for (const d of shuffle([1,2,3,4,5,6,7,8,9])) {
+    if (isValid(sol, r, c, d, hRuns[cH[`${r},${c}`]], vRuns[cV[`${r},${c}`]])) {
+      sol[r][c] = d;
+      if (backfill(sol, cells, idx+1, hRuns, vRuns, cH, cV)) return true;
+      sol[r][c] = 0;
+    }
+  }
+  return false;
+}
+
+function isValid(sol, r, c, d, hRun, vRun) {
+  for (const [rr,cc] of hRun.cells) if (sol[rr][cc] === d) return false;
+  for (const [rr,cc] of vRun.cells) if (sol[rr][cc] === d) return false;
+  return true;
+}
+
+function computeClues(layout, solution, n) {
+  const clues = {};
+  for (const run of getHorizontalRuns(layout, n)) {
+    const sum = run.cells.reduce((s,[r,c]) => s + solution[r][c], 0);
+    const key = `${run.clueRow},${run.clueCol}`;
+    if (!clues[key]) clues[key] = {};
+    clues[key].across = sum;
+  }
+  for (const run of getVerticalRuns(layout, n)) {
+    const sum = run.cells.reduce((s,[r,c]) => s + solution[r][c], 0);
+    const key = `${run.clueRow},${run.clueCol}`;
+    if (!clues[key]) clues[key] = {};
+    clues[key].down = sum;
+  }
+  return clues;
+}
+
+// PRE-FILL (DIFFICULTY-SCALED, LOCKED)
+function buildPrefill(layout, solution, n, rate) {
+  const locked = Array.from({length: n}, () => Array(n).fill(false));
+  if (rate <= 0) return locked;
+  const whiteCells = [];
+  for (let r = 1; r < n; r++) for (let c = 1; c < n; c++) if (layout[r][c] === 1) whiteCells.push([r,c]);
+  const count = Math.max(1, Math.round(whiteCells.length * rate));
+  shuffle(whiteCells);
+  for (let i = 0; i < count && i < whiteCells.length; i++) {
+    const [r, c] = whiteCells[i];
+    locked[r][c] = true;
+  }
+  return locked;
+}
+
+// GAME STATE
+function newGame() {
+  const cfg = MODES[currentMode];
+  let gen = null, tries = 0;
+  while (!gen && tries < 30) { gen = generatePuzzle(cfg.size, cfg.blackRate); tries++; }
+  if (!gen) { newGame(); return; }
+  puzzle = gen;
+  selectedCell = null; errorCount = 0;
+  userGrid = Array.from({length: cfg.size}, () => Array(cfg.size).fill(0));
+  lockedGrid = buildPrefill(puzzle.layout, puzzle.solution, cfg.size, cfg.prefillRate);
+  for (let r = 1; r < cfg.size; r++) {
+    for (let c = 1; c < cfg.size; c++) {
+      if (lockedGrid[r][c]) userGrid[r][c] = puzzle.solution[r][c];
+    }
+  }
+  document.getElementById('error-count').textContent = '0';
+  document.getElementById('message-bar').textContent = '';
+  document.getElementById('message-bar').className = 'message-bar';
+  renderGrid();
+  updateFilledCount();
+}
+
+function renderGrid() {
+  const table = document.getElementById('kakuro-grid');
+  table.innerHTML = '';
+  const { layout, clues } = puzzle;
+  const n = layout.length;
+  const cs = MODES[currentMode].cellSize;
+
+  for (let r = 0; r < n; r++) {
+    const tr = document.createElement('tr');
+    for (let c = 0; c < n; c++) {
+      const td = document.createElement('td');
+      if (layout[r][c] === 1) {
+        const div = document.createElement('div');
+        const locked = lockedGrid[r][c];
+        div.className = 'cell-input' + (locked ? ' locked' : '');
+        div.id = `cell-${r}-${c}`;
+        div.dataset.r = r; div.dataset.c = c;
+        const val = document.createElement('div');
+        val.className = 'cell-value'; val.id = `val-${r}-${c}`;
+        if (locked) val.textContent = userGrid[r][c];
+        div.appendChild(val);
+        if (!locked) div.addEventListener('click', () => selectCell(r, c));
+        td.appendChild(div);
+      } else {
+        const key = `${r},${c}`;
+        const clue = clues[key];
+        if (clue) {
+          const div = document.createElement('div'); div.className = 'cell-clue';
+          const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+          svg.setAttribute('viewBox', `0 0 ${cs} ${cs}`); svg.classList.add('clue-slash');
+          const line = document.createElementNS('http://www.w3.org/2000/svg', 'line');
+          line.setAttribute('x1','2'); line.setAttribute('y1','2');
+          line.setAttribute('x2', cs-2); line.setAttribute('y2', cs-2);
+          line.setAttribute('stroke','rgba(255,255,255,0.12)'); line.setAttribute('stroke-width','1.5');
+          svg.appendChild(line); div.appendChild(svg);
+          if (clue.across !== undefined) {
+            const span = document.createElement('span'); span.className = 'clue-across'; span.textContent = clue.across; div.appendChild(span);
+          }
+          if (clue.down !== undefined) {
+            const span = document.createElement('span'); span.className = 'clue-down'; span.textContent = clue.down; div.appendChild(span);
+          }
+          td.appendChild(div);
+        } else {
+          const div = document.createElement('div');
+          div.className = (r===0&&c===0) ? 'cell-black corner' : 'cell-black';
+          td.appendChild(div);
+        }
+      }
+      tr.appendChild(td);
+    }
+    table.appendChild(tr);
+  }
+}
+
+function selectCell(r, c) {
+  if (lockedGrid[r][c]) return;
+  clearHighlights(); selectedCell = {r, c};
+  document.getElementById(`cell-${r}-${c}`)?.classList.add('selected');
+  const n = puzzle.layout.length;
+  for (const run of getHorizontalRuns(puzzle.layout, n)) {
+    if (run.cells.some(([rr,cc]) => rr===r && cc===c))
+      for (const [rr,cc] of run.cells) if ((rr!==r||cc!==c) && !lockedGrid[rr][cc]) document.getElementById(`cell-${rr}-${cc}`)?.classList.add('highlight');
+  }
+  for (const run of getVerticalRuns(puzzle.layout, n)) {
+    if (run.cells.some(([rr,cc]) => rr===r && cc===c))
+      for (const [rr,cc] of run.cells) if ((rr!==r||cc!==c) && !lockedGrid[rr][cc]) document.getElementById(`cell-${rr}-${cc}`)?.classList.add('highlight');
+  }
+}
+
+function clearHighlights() {
+  document.querySelectorAll('.cell-input').forEach(el => el.classList.remove('selected','highlight'));
+}
+
+function enterDigit(d) {
+  if (!selectedCell) return;
+  const {r, c} = selectedCell;
+  if (puzzle.layout[r][c] !== 1) return;
+  if (lockedGrid[r][c]) return;
+  userGrid[r][c] = d;
+  const valEl = document.getElementById(`val-${r}-${c}`);
+  if (valEl) valEl.textContent = d===0 ? '' : d;
+  document.getElementById(`cell-${r}-${c}`)?.classList.remove('error','correct');
+  document.getElementById('message-bar').textContent = '';
+  updateFilledCount();
+  advanceCursor(r, c);
+}
+
+function advanceCursor(r, c) {
+  const n = SIZE;
+  for (let cc = c+1; cc < n; cc++) if (puzzle.layout[r][cc]===1 && !lockedGrid[r][cc]) { selectCell(r,cc); return; }
+  for (let rr = r+1; rr < n; rr++) for (let cc = 1; cc < n; cc++) if (puzzle.layout[rr][cc]===1 && !lockedGrid[rr][cc]) { selectCell(rr,cc); return; }
+}
+
+function updateFilledCount() {
+  let filled=0, total=0;
+  for (let r=1; r<SIZE; r++) for (let c=1; c<SIZE; c++) {
+    if (puzzle.layout[r][c]===1) { total++; if (userGrid[r][c]!==0) filled++; }
+  }
+  document.getElementById('filled-count').textContent = `${filled} / ${total}`;
+}
+
+function checkPuzzle() {
+  let allCorrect=true;
+  for (let r=1; r<SIZE; r++) {
+    for (let c=1; c<SIZE; c++) {
+      if (puzzle.layout[r][c]!==1) continue;
+      if (lockedGrid[r][c]) continue;
+      const cellEl = document.getElementById(`cell-${r}-${c}`);
+      if (!cellEl) continue;
+      const user = userGrid[r][c];
+      if (user===0) { allCorrect=false; continue; }
+      cellEl.classList.remove('error','correct');
+      if (user===puzzle.solution[r][c]) { cellEl.classList.add('correct'); }
+      else { cellEl.classList.add('error'); allCorrect=false; errorCount++; document.getElementById('error-count').textContent=errorCount; }
+    }
+  }
+  const msgBar = document.getElementById('message-bar');
+  if (allCorrect) {
+    let total=0, filled=0;
+    for (let r=1;r<SIZE;r++) for(let c=1;c<SIZE;c++) if(puzzle.layout[r][c]===1){total++;if(userGrid[r][c]!==0)filled++;}
+    if (filled===total) { setTimeout(showWin, 300); }
+    else { msgBar.textContent="Looking good so far! Keep going."; msgBar.className='message-bar good'; }
+  } else { msgBar.textContent="Some cells need fixing."; msgBar.className='message-bar'; }
+}
+
+function revealPuzzle() {
+  for (let r=1;r<SIZE;r++) for(let c=1;c<SIZE;c++) {
+    if (puzzle.layout[r][c]!==1) continue;
+    userGrid[r][c]=puzzle.solution[r][c];
+    const v=document.getElementById(`val-${r}-${c}`); if(v) v.textContent=puzzle.solution[r][c];
+    document.getElementById(`cell-${r}-${c}`)?.classList.add('correct');
+  }
+  updateFilledCount();
+  const msgBar=document.getElementById('message-bar');
+  msgBar.textContent="Puzzle revealed. Try a new one."; msgBar.className='message-bar good';
+}
+
+function showWin() {
+  document.getElementById('win-sub').textContent=`Solved with ${errorCount} error${errorCount!==1?'s':''}!`;
+  document.getElementById('win-overlay').classList.add('show');
+}
+function closeWin() { document.getElementById('win-overlay').classList.remove('show'); }
+
+// NUMPAD
+function buildNumpad() {
+  const pad = document.getElementById('numpad'); pad.innerHTML='';
+  for (let d=1;d<=9;d++) {
+    const btn=document.createElement('button'); btn.className='numpad-btn'; btn.textContent=d;
+    btn.addEventListener('click',()=>enterDigit(d)); pad.appendChild(btn);
+  }
+  const clr=document.createElement('button'); clr.className='numpad-btn clear-btn'; clr.textContent='Clear';
+  clr.title='Clear cell';
+  clr.addEventListener('click',()=>enterDigit(0)); pad.appendChild(clr);
+}
+
+// KEYBOARD
+document.addEventListener('keydown', (e) => {
+  if (!selectedCell || !puzzle) return;
+  const {r,c}=selectedCell;
+  if (e.key>='1'&&e.key<='9') { enterDigit(parseInt(e.key)); return; }
+  if (e.key==='Backspace'||e.key==='Delete'||e.key==='0') { enterDigit(0); return; }
+  const moves={ArrowRight:[0,1],ArrowLeft:[0,-1],ArrowDown:[1,0],ArrowUp:[-1,0]};
+  if (moves[e.key]) {
+    e.preventDefault();
+    const [dr,dc]=moves[e.key]; let nr=r+dr, nc=c+dc;
+    while (nr>=0&&nr<SIZE&&nc>=0&&nc<SIZE) {
+      if (puzzle.layout[nr][nc]===1 && !lockedGrid[nr][nc]) { selectCell(nr,nc); return; }
+      nr+=dr; nc+=dc;
+    }
+  }
+});
+
+buildNumpad();
+</script>
+</body>
+</html>

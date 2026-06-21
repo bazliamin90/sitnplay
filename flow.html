@@ -1,0 +1,858 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<script src="header.js"></script>
+<title>Flow</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --paper:      #eae5d8;
+    --card:       #f4f1ea;
+    --card-edge:  #d9d2c2;
+    --ink:        #2a2620;
+    --ink-soft:   #8a8270;
+    --ink-faint:  #b6ad99;
+    --rust:       #c1502e;
+    --line:       #ddd6c4;
+    --black:      #211d17;
+  }
+
+  html, body {
+    background: var(--paper);
+    background-image:
+      repeating-linear-gradient(0deg, rgba(0,0,0,0.018) 0px, rgba(0,0,0,0.018) 1px, transparent 1px, transparent 3px);
+  }
+
+  body {
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    font-family: 'Courier New', ui-monospace, 'SF Mono', Menlo, monospace;
+    color: var(--ink);
+    user-select: none;
+    _padding: 28px 16px 48px;
+  }
+
+  #frame {
+    width: 100%;
+    max-width: 640px;
+    background: var(--paper);
+    border: 1px solid var(--card-edge);
+    border-radius: 28px;
+    padding: 10px;
+    margin: 2rem auto;
+    box-shadow: 0 1px 0 rgba(255,255,255,0.6) inset, 0 12px 30px -16px rgba(0,0,0,0.18);
+  }
+
+  #card {
+    background: var(--card);
+    border: 1px solid var(--card-edge);
+    border-radius: 22px;
+    padding: 36px 30px 30px;
+  }
+
+  /* ── Header ───────────────────────────────────────────── */
+  header {
+    text-align: center;
+    margin-bottom: 22px;
+  }
+
+  h1 {
+    font-family: Georgia, 'Times New Roman', serif;
+    font-weight: 700;
+    font-size: 2.6rem;
+    letter-spacing: -0.01em;
+    color: var(--black);
+  }
+  h1 .dot { color: var(--rust); }
+
+  .tagline {
+    margin-top: 6px;
+    font-size: 0.72rem;
+    letter-spacing: 0.22em;
+    text-transform: uppercase;
+    color: var(--ink-soft);
+  }
+
+  .hr {
+    border: none;
+    border-top: 1px solid var(--line);
+    margin: 20px 0 18px;
+  }
+
+  /* ── Mode selector (segmented pill) ───────────────────── */
+  #mode-bar {
+    display: flex;
+    border: 1.5px solid var(--black);
+    border-radius: 12px;
+    overflow: hidden;
+    box-shadow: 0 2px 0 rgba(0,0,0,0.08);
+    margin-bottom: 14px;
+  }
+
+  .mode-btn {
+    flex: 1;
+    background: var(--card);
+    border: none;
+    border-right: 1.5px solid var(--black);
+    color: var(--ink);
+    padding: 12px 8px;
+    font-family: inherit;
+    font-size: 0.82rem;
+    font-weight: 700;
+    letter-spacing: 0.02em;
+    cursor: pointer;
+    transition: background 0.12s, color 0.12s;
+  }
+  .mode-btn:last-child { border-right: none; }
+  .mode-btn:hover { background: #ebe6d8; }
+  .mode-btn.active {
+    background: var(--black);
+    color: var(--card);
+  }
+
+  /* ── Row of buttons (status / controls) ───────────────── */
+  #status {
+    font-size: 0.72rem;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--ink-soft);
+    text-align: center;
+    min-height: 1.2em;
+    margin: 4px 0 18px;
+  }
+
+  #controls {
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+    margin-bottom: 6px;
+  }
+
+  button.ctrl-btn {
+    flex: 1;
+    min-width: 92px;
+    background: var(--card);
+    border: 1.5px solid var(--black);
+    color: var(--ink);
+    padding: 11px 14px;
+    border-radius: 10px;
+    font-family: inherit;
+    font-size: 0.82rem;
+    font-weight: 700;
+    letter-spacing: 0.02em;
+    cursor: pointer;
+    box-shadow: 0 2px 0 rgba(0,0,0,0.1);
+    transition: background 0.12s, transform 0.05s;
+  }
+  button.ctrl-btn:hover { background: #ebe6d8; }
+  button.ctrl-btn:active { transform: translateY(1px); box-shadow: 0 1px 0 rgba(0,0,0,0.1); }
+
+  button.ctrl-btn.new-btn {
+    background: var(--black);
+    color: var(--card);
+    border-color: var(--black);
+  }
+  button.ctrl-btn.new-btn:hover { background: #34302a; }
+
+  button.ctrl-btn.hint-btn { color: var(--rust); border-color: var(--rust); }
+  button.ctrl-btn.hint-btn:hover { background: #f3e3da; }
+  button.ctrl-btn.hint-btn:disabled {
+    opacity: 0.4; cursor: not-allowed; border-color: var(--ink-faint); color: var(--ink-faint); background: var(--card);
+  }
+
+  #hint-count {
+    font-size: 0.68rem;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--ink-faint);
+    text-align: center;
+    min-height: 1.4em;
+    margin-bottom: 14px;
+  }
+
+  /* ── Board ─────────────────────────────────────────────── */
+  #board-wrap {
+    position: relative;
+    background: var(--paper);
+    border: 1px solid var(--line);
+    border-radius: 16px;
+    padding: 14px;
+    display: flex;
+    justify-content: center;
+  }
+
+  canvas {
+    display: block;
+    border-radius: 10px;
+    cursor: crosshair;
+    touch-action: none;
+    max-width: 100%;
+    height: auto;
+  }
+
+  .hint-line {
+    text-align: center;
+    font-size: 0.7rem;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--ink-faint);
+    margin-top: 16px;
+  }
+  .hint-line .sep { margin: 0 8px; color: var(--ink-faint); }
+
+  /* ── Win overlay ───────────────────────────────────────── */
+  #win-overlay {
+    display: none;
+    position: absolute;
+    inset: 14px;
+    border-radius: 12px;
+    background: rgba(244,241,234,0.94);
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    text-align: center;
+  }
+  #win-overlay.show { display: flex; }
+  #win-overlay .emoji { font-size: 2rem; color: var(--rust); }
+  #win-overlay .msg {
+    font-family: Georgia, 'Times New Roman', serif;
+    font-weight: 700;
+    font-size: 1.6rem;
+    color: var(--black);
+  }
+  #win-overlay .sub {
+    font-size: 0.7rem;
+    font-weight: 400;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    color: var(--ink-soft);
+  }
+  #win-overlay .new-btn {
+    margin-top: 10px;
+    background: var(--black);
+    border: 1.5px solid var(--black);
+    color: var(--card);
+    padding: 10px 22px;
+    border-radius: 10px;
+    font-family: inherit;
+    font-size: 0.78rem;
+    font-weight: 700;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    cursor: pointer;
+    box-shadow: 0 2px 0 rgba(0,0,0,0.15);
+  }
+  #win-overlay .new-btn:hover { background: #34302a; }
+
+  /* ── Loading overlay ───────────────────────────────────── */
+  #loading-overlay {
+    display: none;
+    position: absolute;
+    inset: 14px;
+    border-radius: 12px;
+    background: rgba(244,241,234,0.94);
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+    text-align: center;
+  }
+  #loading-overlay.show { display: flex; }
+  #loading-overlay .spinner {
+    display: flex;
+    gap: 7px;
+  }
+  #loading-overlay .spinner span {
+    width: 9px;
+    height: 9px;
+    border-radius: 50%;
+    background: var(--rust);
+    animation: pulse-dot 1.1s ease-in-out infinite;
+  }
+  #loading-overlay .spinner span:nth-child(2) { animation-delay: 0.15s; }
+  #loading-overlay .spinner span:nth-child(3) { animation-delay: 0.3s; }
+  @keyframes pulse-dot {
+    0%, 80%, 100% { transform: scale(0.6); opacity: 0.35; }
+    40% { transform: scale(1); opacity: 1; }
+  }
+  #loading-overlay .msg {
+    font-family: Georgia, 'Times New Roman', serif;
+    font-weight: 700;
+    font-size: 1.25rem;
+    color: var(--black);
+  }
+  #loading-overlay .sub {
+    font-size: 0.68rem;
+    font-weight: 400;
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
+    color: var(--ink-soft);
+  }
+
+  /* ── Mobile tuning ─────────────────────────────────────── */
+  @media (max-width: 480px) {
+    body { padding: 16px 8px 36px; align-items: flex-start; }
+    #card { padding: 26px 16px 22px; }
+    h1 { font-size: 2.1rem; }
+    .tagline { font-size: 0.62rem; letter-spacing: 0.16em; }
+    .mode-btn { font-size: 0.72rem; padding: 11px 4px; }
+    button.ctrl-btn { font-size: 0.74rem; padding: 10px 8px; min-width: 0; }
+    #board-wrap { padding: 8px; }
+  }
+
+  @media (max-width: 360px) {
+    h1 { font-size: 1.8rem; }
+    #controls { gap: 6px; }
+  }
+</style>
+</head>
+<body>
+<header3-component></header3-component>
+<div id="frame">
+  <div id="card">
+
+    <header>
+      <h1>Flow<span class="dot">.</span></h1>
+      <div class="tagline">A path puzzle, freshly drawn</div>
+    </header>
+
+    <hr class="hr">
+
+    <div id="mode-bar">
+      <button class="mode-btn easy"   onclick="setMode('easy')">Easy (5×5)</button>
+      <button class="mode-btn medium" onclick="setMode('medium')">Medium (7×7)</button>
+      <button class="mode-btn hard"   onclick="setMode('hard')">Hard (9×9)</button>
+    </div>
+
+    <div id="status">Generating puzzle…</div>
+
+    <div id="controls">
+      <button class="ctrl-btn new-btn" onclick="newPuzzle()">New</button>
+      <button class="ctrl-btn hint-btn" id="hintBtn" onclick="useHint()">Hint</button>
+      <button class="ctrl-btn" onclick="resetPuzzle()">Reset</button>
+    </div>
+    <div id="hint-count"></div>
+
+    <div id="board-wrap">
+      <canvas id="c"></canvas>
+      <div id="win-overlay">
+        <div class="emoji">✦</div>
+        <div class="msg">Solved</div>
+        <div class="sub">All paths connected</div>
+        <button class="new-btn" onclick="newPuzzle()">New Puzzle →</button>
+      </div>
+      <div id="loading-overlay">
+        <div class="spinner"><span></span><span></span><span></span></div>
+        <div class="msg">Drawing…</div>
+        <div class="sub">Laying out paths</div>
+      </div>
+    </div>
+
+    <div class="hint-line">Drag from a dot<span class="sep">|</span>Fill every cell</div>
+
+  </div>
+</div>
+
+<script>
+// ─── COLORS (warm, paper-friendly palette) ─────────────────────────────────
+const COLORS = [
+  '#c1502e', '#2f6f4e', '#3a6ea5', '#b8862e',
+  '#7a4f9e', '#b14a73', '#4a8a8a', '#8a7340',
+  '#5a5a8a', '#a0522d',
+];
+
+// ─── MODES ─────────────────────────────────────────────────────────────────
+const MODES = {
+  easy:   { grid: 5, colors: 4, hints: 5 },
+  medium: { grid: 7, colors: 6, hints: 3 },
+  hard:   { grid: 9, colors: 8, hints: 1 },
+};
+let currentMode = 'easy';
+
+// ─── STATE ─────────────────────────────────────────────────────────────────
+let N, CELL;
+let dots = {};         // "r,c" -> colorIdx
+let solution = {};     // colorIdx -> [{r,c},...] full solution path
+let paths = {};        // colorIdx -> [{r,c},...] player paths
+let colorPairs = {};   // colorIdx -> [ep1, ep2]
+let activePath = null;
+let activeColor = null;
+let hintsLeft = 0;
+let hintedColors = new Set();
+
+const canvas = document.getElementById('c');
+const ctx = canvas.getContext('2d');
+const DPR = Math.min(window.devicePixelRatio || 1, 2);
+
+// ─── MODE SWITCH ───────────────────────────────────────────────────────────
+function setMode(m) {
+  currentMode = m;
+  document.querySelectorAll('.mode-btn').forEach(b => {
+    b.classList.toggle('active', b.classList.contains(m));
+  });
+  newPuzzle();
+}
+
+// ─── PUZZLE GENERATOR ──────────────────────────────────────────────────────
+// Strategy: for each color, do a random walk from a random free start cell,
+// stop after enough steps or when stuck. Place endpoint. Repeat. Fill remaining
+// cells by extending existing paths greedily.
+
+function shuffle(arr) {
+  for (let i = arr.length-1; i > 0; i--) {
+    const j = Math.random()*i|0;
+    [arr[i],arr[j]] = [arr[j],arr[i]];
+  }
+  return arr;
+}
+
+function neighbors(r, c) {
+  return [[r-1,c],[r+1,c],[r,c-1],[r,c+1]].filter(([a,b])=>a>=0&&a<N&&b>=0&&b<N);
+}
+
+function generatePuzzle() {
+  const cfg = MODES[currentMode];
+  N = cfg.grid;
+  const numColors = cfg.colors;
+  hintsLeft = cfg.hints;
+  hintedColors = new Set();
+
+  const MAX_TRIES = 80;
+  for (let attempt = 0; attempt < MAX_TRIES; attempt++) {
+    const grid = Array.from({length:N},()=>Array(N).fill(-1)); // colorIdx or -1
+    const solPaths = {}; // ci -> [{r,c}]
+    let ok = true;
+
+    // Place paths one by one
+    for (let ci = 0; ci < numColors; ci++) {
+      // Pick random free start
+      const freeCells = [];
+      for (let r=0;r<N;r++) for (let c=0;c<N;c++) if (grid[r][c]===-1) freeCells.push([r,c]);
+      if (freeCells.length < 2) { ok=false; break; }
+
+      const [sr,sc] = freeCells[Math.random()*freeCells.length|0];
+      grid[sr][sc] = ci;
+      const path = [{r:sr,c:sc}];
+
+      // Random walk
+      const minLen = Math.max(3, Math.floor(N*0.8));
+      const maxLen = Math.floor(N*N / numColors * 1.4);
+      let stuck = false;
+      while (path.length < maxLen) {
+        const last = path[path.length-1];
+        const nbrs = shuffle(neighbors(last.r,last.c)).filter(([a,b])=>grid[a][b]===-1);
+        if (!nbrs.length) { stuck=true; break; }
+        const [nr,nc] = nbrs[0];
+        grid[nr][nc] = ci;
+        path.push({r:nr,c:nc});
+      }
+      if (path.length < minLen) { ok=false; break; }
+      solPaths[ci] = path;
+    }
+
+    if (!ok) continue;
+
+    // Fill remaining free cells by extending any neighbor path
+    let changed = true;
+    let safetyIter = 0;
+    while (changed && safetyIter++ < N*N*2) {
+      changed = false;
+      const freeCells = [];
+      for (let r=0;r<N;r++) for (let c=0;c<N;c++) if (grid[r][c]===-1) freeCells.push([r,c]);
+      shuffle(freeCells);
+      for (const [r,c] of freeCells) {
+        const nbrs = neighbors(r,c).filter(([a,b])=>grid[a][b]!==-1);
+        if (!nbrs.length) continue;
+        const [nr,nc] = nbrs[Math.random()*nbrs.length|0];
+        const ci = grid[nr][nc];
+        // Insert this cell into the middle/end of the path
+        const p = solPaths[ci];
+        // Only extend from endpoints to keep paths contiguous
+        const head = p[0], tail = p[p.length-1];
+        if ((Math.abs(head.r-r)+Math.abs(head.c-c))===1) {
+          p.unshift({r,c}); grid[r][c]=ci; changed=true; break;
+        } else if ((Math.abs(tail.r-r)+Math.abs(tail.c-c))===1) {
+          p.push({r,c}); grid[r][c]=ci; changed=true; break;
+        }
+      }
+    }
+
+    // Check full coverage
+    let covered = 0;
+    for (let r=0;r<N;r++) for (let c=0;c<N;c++) if(grid[r][c]!==-1) covered++;
+    if (covered < N*N) continue;
+
+    // Build dots (endpoints of each path)
+    const newDots = {};
+    const newPairs = {};
+    const newSol = {};
+    for (let ci=0; ci<numColors; ci++) {
+      const p = solPaths[ci];
+      const ep1 = p[0], ep2 = p[p.length-1];
+      newDots[`${ep1.r},${ep1.c}`] = ci;
+      newDots[`${ep2.r},${ep2.c}`] = ci;
+      newPairs[ci] = [ep1, ep2];
+      newSol[ci] = p;
+    }
+
+    // Validate: each dot should appear exactly once (no overlapping endpoints)
+    const dotCount = Object.keys(newDots).length;
+    if (dotCount < numColors * 2) continue;
+
+    // Success
+    dots = newDots;
+    solution = newSol;
+    colorPairs = newPairs;
+    return true;
+  }
+  return false; // fallback
+}
+
+// ─── RESPONSIVE SIZING ─────────────────────────────────────────────────────
+function computeCellSize() {
+  const isMobile = window.innerWidth <= 480;
+  const bodyPadding = isMobile ? 16 : 32;       // left+right padding of body
+  const wrapPadding  = isMobile ? 16 : 28;      // left+right padding of #board-wrap
+  const cardPadding  = isMobile ? 32 : 60;      // left+right padding of #card
+  const framePadding = 20;                       // left+right padding of #frame
+  const viewportAvailable = window.innerWidth - bodyPadding - framePadding - cardPadding - wrapPadding - 4; // small safety margin
+  const maxBoardPx = Math.min(viewportAvailable, 520);
+  const maxCell = isMobile ? 64 : 72;
+  return Math.max(22, Math.min(Math.floor(maxBoardPx / N), maxCell));
+}
+
+function resizeCanvas() {
+  if (!N) return;
+  CELL = computeCellSize();
+  const sizePx = N * CELL;
+  canvas.style.width = sizePx + 'px';
+  canvas.style.height = sizePx + 'px';
+  canvas.width = sizePx * DPR;
+  canvas.height = sizePx * DPR;
+  ctx.setTransform(DPR, 0, 0, DPR, 0, 0);
+  draw();
+}
+
+let resizeTimer = null;
+window.addEventListener('resize', () => {
+  clearTimeout(resizeTimer);
+  resizeTimer = setTimeout(resizeCanvas, 80);
+});
+window.addEventListener('orientationchange', () => {
+  clearTimeout(resizeTimer);
+  resizeTimer = setTimeout(resizeCanvas, 120);
+});
+
+// ─── INIT ──────────────────────────────────────────────────────────────────
+function newPuzzle() {
+  document.getElementById('win-overlay').classList.remove('show');
+  document.getElementById('loading-overlay').classList.add('show');
+  document.getElementById('status').textContent = 'Generating…';
+
+  // Small delay so the UI updates before sync work
+  setTimeout(() => {
+    let ok = generatePuzzle();
+    if (!ok) { newPuzzle(); return; } // retry, keep overlay showing
+
+    CELL = computeCellSize();
+    const sizePx = N * CELL;
+    canvas.style.width = sizePx + 'px';
+    canvas.style.height = sizePx + 'px';
+    canvas.width = sizePx * DPR;
+    canvas.height = sizePx * DPR;
+    ctx.setTransform(DPR, 0, 0, DPR, 0, 0);
+
+    // Reset player paths
+    paths = {};
+    const numColors = MODES[currentMode].colors;
+    for (let ci=0;ci<numColors;ci++) paths[ci] = [];
+
+    activePath = null;
+    activeColor = null;
+
+    const cfg = MODES[currentMode];
+    document.getElementById('status').textContent =
+      `${currentMode.toUpperCase()} · ${N}×${N} · ${cfg.colors} COLORS`;
+    updateHintUI();
+    draw();
+    document.getElementById('loading-overlay').classList.remove('show');
+  }, 20);
+}
+
+function resetPuzzle() {
+  const numColors = MODES[currentMode].colors;
+  paths = {};
+  for (let ci=0;ci<numColors;ci++) paths[ci] = [];
+  activePath = null;
+  activeColor = null;
+  hintsLeft = MODES[currentMode].hints;
+  hintedColors = new Set();
+  document.getElementById('win-overlay').classList.remove('show');
+  updateHintUI();
+  draw();
+}
+
+// ─── HINT ──────────────────────────────────────────────────────────────────
+function updateHintUI() {
+  const btn = document.getElementById('hintBtn');
+  const lbl = document.getElementById('hint-count');
+  btn.disabled = hintsLeft <= 0;
+  lbl.textContent = hintsLeft > 0 ? `${hintsLeft} HINT${hintsLeft!==1?'S':''} REMAINING` : 'NO HINTS LEFT';
+}
+
+function useHint() {
+  if (hintsLeft <= 0) return;
+
+  // Find a color that isn't solved yet and hasn't been hinted
+  const numColors = MODES[currentMode].colors;
+  const candidates = [];
+  for (let ci=0;ci<numColors;ci++) {
+    if (hintedColors.has(ci)) continue;
+    if (isColorSolved(ci)) continue;
+    candidates.push(ci);
+  }
+  if (!candidates.length) return;
+
+  // Pick the color with the shortest solution path (easiest to reveal)
+  candidates.sort((a,b) => solution[a].length - solution[b].length);
+  const ci = candidates[0];
+
+  // Reveal full solution path for this color
+  paths[ci] = solution[ci].map(p => ({...p}));
+  hintedColors.add(ci);
+  hintsLeft--;
+
+  // Erase any other color's path that overlaps
+  for (let other=0;other<numColors;other++) {
+    if (other===ci) continue;
+    paths[other] = paths[other].filter(p =>
+      !solution[ci].some(sp => sp.r===p.r && sp.c===p.c)
+    );
+  }
+
+  updateHintUI();
+  draw();
+
+  // Flash the hinted path
+  let flashes = 0;
+  const flash = setInterval(() => {
+    flashes++;
+    draw();
+    if (flashes > 5) { clearInterval(flash); draw(); }
+  }, 120);
+
+  checkWin();
+}
+
+function isColorSolved(ci) {
+  const path = paths[ci];
+  if (!path || path.length < 2) return false;
+  const eps = colorPairs[ci];
+  if (!eps) return false;
+  const pa = path[0], pb = path[path.length-1];
+  return (sameCell(pa,eps[0])&&sameCell(pb,eps[1])) ||
+         (sameCell(pa,eps[1])&&sameCell(pb,eps[0]));
+}
+
+// ─── DRAW ──────────────────────────────────────────────────────────────────
+function draw() {
+  const sizePx = N * CELL;
+  ctx.clearRect(0,0,sizePx,sizePx);
+
+  // Background
+  ctx.fillStyle = '#f4f1ea';
+  ctx.beginPath();
+  ctx.roundRect(0,0,sizePx,sizePx,10);
+  ctx.fill();
+
+  // Grid lines
+  ctx.strokeStyle = 'rgba(42,38,32,0.12)';
+  ctx.lineWidth = 1;
+  for (let i=0;i<=N;i++) {
+    ctx.beginPath(); ctx.moveTo(i*CELL,0); ctx.lineTo(i*CELL,N*CELL); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(0,i*CELL); ctx.lineTo(N*CELL,i*CELL); ctx.stroke();
+  }
+
+  // Paths
+  const numColors = MODES[currentMode].colors;
+  for (let ci=0;ci<numColors;ci++) {
+    const path = paths[ci];
+    if (!path||path.length<2) continue;
+    const isHinted = hintedColors.has(ci);
+    drawPath(path, COLORS[ci], ci===activeColor, isHinted);
+  }
+
+  // Active path on top
+  if (activePath && activePath.length >= 2) {
+    drawPath(activePath, COLORS[activeColor], true, false);
+  }
+
+  // Dots
+  for (const [key,ci] of Object.entries(dots)) {
+    const [r,c] = key.split(',').map(Number);
+    drawDot(r,c,COLORS[ci], hintedColors.has(ci));
+  }
+}
+
+function drawPath(path, color, isActive, isHinted) {
+  ctx.strokeStyle = color;
+  ctx.lineWidth = CELL * 0.36;
+  ctx.lineCap = 'round';
+  ctx.lineJoin = 'round';
+  ctx.globalAlpha = isHinted ? 0.92 : (isActive ? 0.85 : 0.72);
+  ctx.beginPath();
+  ctx.moveTo(path[0].c*CELL+CELL/2, path[0].r*CELL+CELL/2);
+  for (let i=1;i<path.length;i++)
+    ctx.lineTo(path[i].c*CELL+CELL/2, path[i].r*CELL+CELL/2);
+  ctx.stroke();
+  ctx.globalAlpha = 1;
+}
+
+function drawDot(r,c,color,isHinted) {
+  const x = c*CELL+CELL/2, y = r*CELL+CELL/2;
+  const rad = CELL*0.27;
+
+  // Soft halo (paper-friendly, subtle)
+  ctx.fillStyle = color + (isHinted ? '33' : '1f');
+  ctx.beginPath(); ctx.arc(x,y,rad*1.9,0,Math.PI*2); ctx.fill();
+
+  // Dot
+  ctx.fillStyle = color;
+  ctx.beginPath(); ctx.arc(x,y,rad,0,Math.PI*2); ctx.fill();
+
+  // Subtle ink outline for contrast on paper
+  ctx.strokeStyle = 'rgba(42,38,32,0.25)';
+  ctx.lineWidth = 1;
+  ctx.beginPath(); ctx.arc(x,y,rad,0,Math.PI*2); ctx.stroke();
+
+  // Highlight
+  ctx.fillStyle = 'rgba(255,255,255,0.32)';
+  ctx.beginPath(); ctx.arc(x-rad*0.22,y-rad*0.22,rad*0.34,0,Math.PI*2); ctx.fill();
+}
+
+// ─── GRID HELPERS ──────────────────────────────────────────────────────────
+function cellAt(x,y) { return {r:Math.floor(y/CELL),c:Math.floor(x/CELL)}; }
+function adjacent(a,b) { return Math.abs(a.r-b.r)+Math.abs(a.c-b.c)===1; }
+function sameCell(a,b) { return a.r===b.r&&a.c===b.c; }
+function pathContains(path,cell) { return path.some(p=>sameCell(p,cell)); }
+function dotAt(r,c) { const k=`${r},${c}`; return dots[k]!==undefined?dots[k]:-1; }
+function colorOfCell(r,c) {
+  for (const [ci,path] of Object.entries(paths))
+    if (pathContains(path,{r,c})) return parseInt(ci);
+  return -1;
+}
+
+// ─── INPUT ─────────────────────────────────────────────────────────────────
+function getPos(e) {
+  const rect = canvas.getBoundingClientRect();
+  const sx = canvas.width / rect.width / DPR;
+  const sy = canvas.height / rect.height / DPR;
+  const touch = e.touches ? e.touches[0] : e;
+  return { x:(touch.clientX-rect.left)*sx, y:(touch.clientY-rect.top)*sy };
+}
+
+canvas.addEventListener('mousedown', startDrag);
+canvas.addEventListener('touchstart', e=>{e.preventDefault();startDrag(e);},{passive:false});
+
+function startDrag(e) {
+  const {x,y}=getPos(e);
+  const {r,c}=cellAt(x,y);
+  if (r<0||r>=N||c<0||c>=N) return;
+
+  const ci = dotAt(r,c);
+  if (ci>=0) {
+    if (hintedColors.has(ci)) return; // don't let player mess with hinted paths
+    paths[ci]=[{r,c}];
+    activePath=paths[ci];
+    activeColor=ci;
+  } else {
+    const owner=colorOfCell(r,c);
+    if (owner>=0) {
+      if (hintedColors.has(owner)) return;
+      const path=paths[owner];
+      const idx=path.findIndex(p=>sameCell(p,{r,c}));
+      paths[owner]=path.slice(0,idx+1);
+      activePath=paths[owner];
+      activeColor=owner;
+    }
+  }
+  draw();
+}
+
+canvas.addEventListener('mousemove', drag);
+canvas.addEventListener('touchmove', e=>{e.preventDefault();drag(e);},{passive:false});
+
+function drag(e) {
+  if (activePath===null) return;
+  const {x,y}=getPos(e);
+  const cell=cellAt(x,y);
+  const {r,c}=cell;
+  if (r<0||r>=N||c<0||c>=N) return;
+  const last=activePath[activePath.length-1];
+  if (sameCell(last,cell)) return;
+  if (!adjacent(last,cell)) return;
+
+  // Backtrack
+  if (activePath.length>=2&&sameCell(activePath[activePath.length-2],cell)) {
+    activePath.pop(); draw(); return;
+  }
+  if (pathContains(activePath,cell)) return;
+
+  // Clear other paths (but not hinted ones)
+  for (const [ci,path] of Object.entries(paths)) {
+    if (parseInt(ci)===activeColor) continue;
+    if (hintedColors.has(parseInt(ci))) continue;
+    const idx=path.findIndex(p=>sameCell(p,cell));
+    if (idx>=0) paths[ci]=path.slice(0,idx);
+  }
+  // Don't cross hinted paths
+  if (hintedColors.size>0) {
+    for (const hci of hintedColors) {
+      if (pathContains(paths[hci],cell)) return;
+    }
+  }
+
+  // Reached our own endpoint?
+  const ci=dotAt(r,c);
+  if (ci===activeColor) {
+    activePath.push({r,c}); endDrag(); return;
+  }
+  if (ci>=0&&ci!==activeColor) return;
+
+  activePath.push({r,c}); draw();
+}
+
+canvas.addEventListener('mouseup', endDrag);
+canvas.addEventListener('mouseleave', endDrag);
+canvas.addEventListener('touchend', endDrag);
+
+function endDrag() {
+  activePath=null; activeColor=null; draw(); checkWin();
+}
+
+// ─── WIN CHECK ─────────────────────────────────────────────────────────────
+function checkWin() {
+  const numColors = MODES[currentMode].colors;
+  for (let ci=0;ci<numColors;ci++) {
+    if (!isColorSolved(ci)) return;
+  }
+  // All cells covered
+  const covered=new Set();
+  for (const path of Object.values(paths)) path.forEach(p=>covered.add(`${p.r},${p.c}`));
+  if (covered.size<N*N) return;
+
+  document.getElementById('win-overlay').classList.add('show');
+}
+
+// ─── BOOTSTRAP ─────────────────────────────────────────────────────────────
+setMode('easy');
+</script>
+</body>
+</html>
