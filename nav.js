@@ -11,7 +11,7 @@
 
 const PUZZLE_NAV_LINKS = [
   { label: "Sudoku",  href: "sudoku.html",  match: "sudoku.html"  },
-  { label: "Picross", href: "picross.html", match: "picross.html" },
+  { label: "Picross", href: "index.html", match: "index.html" },
   { label: "Flow",    href: "flow.html",    match: "flow.html"    },
   { label: "Kakuro",  href: "kakuro.html",  match: "kakuro.html"  },
   // Add more puzzles here, e.g.:
