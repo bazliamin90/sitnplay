@@ -110,7 +110,9 @@ header { text-align: center; padding-bottom: 4px; }
   border-radius: var(--radius-btn);
   display: flex;
   align-items: center;
+  transition: border-color 0.15s;
 }
+.surah-select-wrap:focus-within { border-color: var(--accent); }
 .surah-select-wrap::after {
   content: '';
   position: absolute;
@@ -122,7 +124,7 @@ header { text-align: center; padding-bottom: 4px; }
   transform: translateY(-65%) rotate(45deg);
   pointer-events: none;
 }
-#surah-select {
+#surah-search-input {
   width: 100%;
   background: transparent;
   border: none;
@@ -132,11 +134,71 @@ header { text-align: center; padding-bottom: 4px; }
   font-family: 'DM Sans', sans-serif;
   font-size: 13px;
   font-weight: 600;
-  cursor: pointer;
-  appearance: none;
-  -webkit-appearance: none;
+  cursor: text;
 }
-#surah-select option { font-weight: 500; }
+#surah-search-input::placeholder { color: var(--ink-dim); font-weight: 400; }
+
+.surah-results {
+  display: none;
+  position: absolute;
+  top: calc(100% + 6px);
+  left: 0;
+  right: 0;
+  background: var(--card-inner);
+  border: 1.5px solid var(--border);
+  border-radius: var(--radius-btn);
+  max-height: 280px;
+  overflow-y: auto;
+  z-index: 20;
+  box-shadow: 0 6px 18px rgba(0,0,0,0.12);
+}
+.surah-results.visible { display: block; }
+.surah-result-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 8px 14px;
+  border-bottom: 1px solid var(--border-light);
+  cursor: pointer;
+  transition: background 0.12s;
+}
+.surah-result-item:last-child { border-bottom: none; }
+.surah-result-item:hover, .surah-result-item.active { background: var(--accent-light); }
+.surah-result-num {
+  font-size: 10px;
+  font-weight: 700;
+  color: var(--accent);
+  background: var(--parchment);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 1px 6px;
+  flex-shrink: 0;
+  min-width: 20px;
+  text-align: center;
+}
+.surah-result-name {
+  flex: 1;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--ink);
+}
+.surah-result-arabic {
+  font-family: 'Noto Naskh Arabic', serif;
+  font-size: 14px;
+  color: var(--ink-mid);
+  direction: rtl;
+}
+.surah-result-item mark {
+  background: rgba(201,168,76,0.35);
+  color: var(--ink);
+  border-radius: 2px;
+}
+.surah-results .search-status {
+  padding: 12px 14px;
+  font-size: 11px;
+  color: var(--ink-dim);
+}
 
 .search-wrap {
   position: relative;
@@ -238,6 +300,23 @@ header { text-align: center; padding-bottom: 4px; }
   transition: background 0.12s;
 }
 .search-result-item:last-child { border-bottom: none; }
+
+.search-show-more {
+  display: block;
+  width: 100%;
+  padding: 11px 16px;
+  background: var(--card-inner);
+  border: none;
+  border-top: 1px solid var(--border-light);
+  color: var(--accent);
+  font-family: 'DM Sans', sans-serif;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  text-align: center;
+  transition: background 0.12s;
+}
+.search-show-more:hover { background: var(--accent-light); }
 .search-result-item:hover { background: var(--accent-light); }
 
 .sr-meta {
@@ -264,18 +343,29 @@ header { text-align: center; padding-bottom: 4px; }
 }
 .sr-arabic {
   font-family: 'Noto Naskh Arabic', serif;
-  font-size: 14px;
-  color: var(--ink);
+  font-size: 13px;
+  color: var(--ink-mid);
   direction: rtl;
   text-align: right;
-  line-height: 1.7;
-  margin-bottom: 4px;
+  line-height: 1.65;
 }
 .sr-malay {
   font-family: 'DM Sans', sans-serif;
-  font-size: 11px;
-  color: var(--ink-mid);
+  font-size: 13px;
+  color: var(--ink);
   line-height: 1.6;
+}
+/* Translation (terjemahan) is the primary line — shown first, styled prominently */
+.sr-malay-primary {
+  font-weight: 500;
+  color: var(--ink);
+  margin-bottom: 6px;
+}
+/* Original Arabic wording — secondary supporting context below the translation */
+.sr-arabic-secondary {
+  opacity: 0.8;
+  padding-top: 6px;
+  border-top: 1px dashed var(--border-light);
 }
 .sr-malay mark, .sr-arabic mark {
   background: rgba(201,168,76,0.35);
@@ -407,27 +497,11 @@ header { text-align: center; padding-bottom: 4px; }
 .card-topbar {
   display: flex;
   align-items: center;
-  justify-content: space-between;
+  justify-content: flex-end;
   padding: 10px 18px;
   border-bottom: 1.5px solid var(--border-light);
   background: var(--card);
   direction: ltr;
-}
-
-/* macOS-style dots but warm-toned */
-.dots { display: flex; gap: 6px; }
-.dot { width: 10px; height: 10px; border-radius: 50%; }
-.dot:nth-child(1) { background: #D4735E; }
-.dot:nth-child(2) { background: #C9A84C; }
-.dot:nth-child(3) { background: #6AAE8A; }
-
-.card-title {
-  font-family: 'DM Sans', sans-serif;
-  font-size: 10px;
-  font-weight: 500;
-  color: var(--ink-dim);
-  letter-spacing: 1.5px;
-  text-transform: uppercase;
 }
 
 .page-badge {
@@ -679,7 +753,6 @@ header { text-align: center; padding-bottom: 4px; }
 @media (max-width: 520px) {
   .shell { padding: 92px 12px 56px; }
   #page-render { padding: 22px 12px; }
-  .card-title { display: none; }
   .toggle-wrap { margin-left: 0; }
   .sticky-controls { padding: 8px 12px; }
   .surah-select-wrap, .search-wrap { flex: 1 1 100%; }
@@ -720,12 +793,11 @@ header { text-align: center; padding-bottom: 4px; }
     <p class="subtitle">A Quranic page, freshly rendered</p>
   </header>
 
-  <!-- Finder bar: surah select + word search -->
+  <!-- Finder bar: surah search + word search -->
   <div class="finder-bar">
     <div class="surah-select-wrap">
-      <select id="surah-select">
-        <option value="">Pilih Surah…</option>
-      </select>
+      <input type="text" id="surah-search-input" placeholder="Pilih Surah…" autocomplete="off" />
+      <div class="surah-results" id="surah-results"></div>
     </div>
     <div class="search-wrap">
       <span class="search-icon">
@@ -745,12 +817,6 @@ header { text-align: center; padding-bottom: 4px; }
 
   <div class="mushaf-card">
     <div class="card-topbar">
-      <div class="dots">
-        <div class="dot"></div>
-        <div class="dot"></div>
-        <div class="dot"></div>
-      </div>
-      <span class="card-title">mushaf renderer</span>
       <span class="page-badge" id="page-label">page 001</span>
     </div>
 
@@ -783,6 +849,9 @@ header { text-align: center; padding-bottom: 4px; }
 const CDN_FONTS = "https://cdn.jsdelivr.net/gh/MohamadHajjRabee/quran-qcf4@main";
 const CDN_DATA  = "https://raw.githubusercontent.com/MohamadHajjRabee/quran-qcf4/main";
 const TRANS_API = "https://api.alquran.cloud/v1";
+const LOCAL_DATA_FILE = "quran-data.json"; // optional pre-built translation+arabic dataset, same folder as this HTML file
+const LOCAL_MALAY_FILE = "quran-malay.json"; // optional dedicated Malay-translation-only file, keyed by "surah:ayah" -> {t: "..."}
+const LOCAL_ARABIC_FILE = "quran-arabic.json"; // optional dedicated Arabic-only file, keyed by "surah:ayah" -> {surah, ayah, text}
 
 // [number, arabic name, transliteration, starting page in standard 604-page Madani Mushaf]
 const SURAHS = [
@@ -839,7 +908,8 @@ const nextBtn      = document.getElementById("next-btn");
 const transToggle  = document.getElementById("trans-toggle");
 const transPanel   = document.getElementById("translation-panel");
 const transContent = document.getElementById("trans-content");
-const surahSelect  = document.getElementById("surah-select");
+const surahSearchInput = document.getElementById("surah-search-input");
+const surahResults     = document.getElementById("surah-results");
 const searchInput  = document.getElementById("search-input");
 const searchClear  = document.getElementById("search-clear");
 const searchResults= document.getElementById("search-results");
@@ -868,7 +938,27 @@ function goToPage(num) {
   pageInput.value = num;
   prevBtn.disabled = num <= 1;
   nextBtn.disabled = num >= 604;
+  syncSurahSelect(num);
   loadPage(num);
+}
+
+function surahForPage(page) {
+  // SURAHS is ordered by surah number, and start pages are non-decreasing,
+  // so the matching surah is the last one whose start page is <= the given page.
+  let current = SURAHS[0];
+  for (const s of SURAHS) {
+    if (s[3] <= page) current = s; else break;
+  }
+  return current;
+}
+
+function syncSurahSelect(page) {
+  const surah = surahForPage(page);
+  if (!surah) return;
+  // Don't clobber what the user is actively typing/selecting.
+  if (document.activeElement === surahSearchInput) return;
+  const [num, ar, translit] = surah;
+  surahSearchInput.value = `${num}. ${translit} — ${ar}`;
 }
 
 async function loadFont(fontName) {
@@ -1009,37 +1099,127 @@ async function showTranslation(data) {
   transContent.innerHTML = html || `<div class="trans-loading">Tiada data terjemahan.</div>`;
 }
 
-async function fetchSurah(surahId) {
+async function fetchSurah(surahId, retries = 2) {
   if (transCache[surahId]) return;
-  const [arabicRes, malayRes] = await Promise.all([
-    fetch(`${TRANS_API}/surah/${surahId}`),
-    fetch(`${TRANS_API}/surah/${surahId}/ms.basmeih`)
-  ]);
-  if (!arabicRes.ok || !malayRes.ok) throw new Error("API fail");
-  const arabicJson = await arabicRes.json();
-  const malayJson  = await malayRes.json();
-  const arabicAyahs = arabicJson.data.ayahs;
-  const malayAyahs  = malayJson.data.ayahs;
-  transCache[surahId] = arabicAyahs.map((a, i) => ({
-    numberInSurah: a.numberInSurah,
-    arabic: a.text,
-    translation: malayAyahs[i] ? malayAyahs[i].text : ""
-  }));
+  for (let attempt = 0; attempt <= retries; attempt++) {
+    try {
+      const [arabicRes, malayRes] = await Promise.all([
+        fetch(`${TRANS_API}/surah/${surahId}`),
+        fetch(`${TRANS_API}/surah/${surahId}/ms.basmeih`)
+      ]);
+      if (!arabicRes.ok || !malayRes.ok) throw new Error("API fail");
+      const arabicJson = await arabicRes.json();
+      const malayJson  = await malayRes.json();
+      const arabicAyahs = arabicJson.data.ayahs;
+      const malayAyahs  = malayJson.data.ayahs;
+      transCache[surahId] = arabicAyahs.map((a, i) => ({
+        numberInSurah: a.numberInSurah,
+        arabic: a.text,
+        page: a.page,
+        translation: malayAyahs[i] ? malayAyahs[i].text : ""
+      }));
+      return; // success
+    } catch(e) {
+      if (attempt === retries) throw e; // out of retries, let caller handle it
+      await new Promise(r => setTimeout(r, 400 * (attempt + 1))); // brief backoff before retry
+    }
+  }
 }
 
-/* ── Surah dropdown ── */
-SURAHS.forEach(([num, ar, translit, page]) => {
-  const opt = document.createElement("option");
-  opt.value = page;
-  opt.textContent = `${num}. ${translit} — ${ar}`;
-  surahSelect.appendChild(opt);
+/* ── Surah search combobox ── */
+let surahActiveIndex = -1;
+
+function renderSurahResults(query) {
+  const q = query.trim();
+  let list;
+
+  if (!q) {
+    list = SURAHS; // show full list when input is empty (e.g. just focused)
+  } else if (/^\d+$/.test(q)) {
+    const n = parseInt(q, 10);
+    list = SURAHS.filter(s => s[0] === n || String(s[0]).startsWith(q));
+  } else if (isArabic(q)) {
+    const nq = normalizeArabic(q);
+    list = SURAHS.filter(s => normalizeArabic(s[1]).includes(nq));
+  } else {
+    const lq = q.toLowerCase();
+    list = SURAHS.filter(s => s[2].toLowerCase().includes(lq));
+  }
+
+  surahActiveIndex = -1;
+
+  if (!list.length) {
+    surahResults.innerHTML = `<div class="search-status">Tiada surah dijumpai untuk "${escapeHtml(q)}".</div>`;
+    surahResults.classList.add("visible");
+    return;
+  }
+
+  const html = list.map(([num, ar, translit, page]) => `
+    <div class="surah-result-item" data-page="${page}" data-label="${escapeHtml(num + '. ' + translit + ' — ' + ar)}">
+      <span class="surah-result-num">${num}</span>
+      <span class="surah-result-name">${escapeHtml(translit)}</span>
+      <span class="surah-result-arabic">${escapeHtml(ar)}</span>
+    </div>`).join("");
+  surahResults.innerHTML = html;
+  surahResults.classList.add("visible");
+
+  surahResults.querySelectorAll(".surah-result-item").forEach(item => {
+    item.addEventListener("click", () => selectSurahResult(item));
+  });
+}
+
+function selectSurahResult(item) {
+  const page = parseInt(item.dataset.page);
+  surahSearchInput.value = item.dataset.label;
+  closeSurahResults();
+  surahSearchInput.blur();
+  if (page) goToPage(page);
+}
+
+function closeSurahResults() {
+  surahResults.classList.remove("visible");
+  surahResults.innerHTML = "";
+  surahActiveIndex = -1;
+}
+
+surahSearchInput.addEventListener("focus", () => {
+  surahSearchInput.select(); // typing immediately replaces the current surah label
+  renderSurahResults("");
 });
 
-surahSelect.addEventListener("change", () => {
-  const page = parseInt(surahSelect.value);
-  if (page) {
-    closeSearch();
-    goToPage(page);
+surahSearchInput.addEventListener("input", () => {
+  renderSurahResults(surahSearchInput.value);
+});
+
+surahSearchInput.addEventListener("keydown", e => {
+  const items = surahResults.querySelectorAll(".surah-result-item");
+  if (!items.length) return;
+
+  if (e.key === "ArrowDown") {
+    e.preventDefault();
+    surahActiveIndex = Math.min(surahActiveIndex + 1, items.length - 1);
+    items.forEach((it, i) => it.classList.toggle("active", i === surahActiveIndex));
+    items[surahActiveIndex].scrollIntoView({ block: "nearest" });
+  } else if (e.key === "ArrowUp") {
+    e.preventDefault();
+    surahActiveIndex = Math.max(surahActiveIndex - 1, 0);
+    items.forEach((it, i) => it.classList.toggle("active", i === surahActiveIndex));
+    items[surahActiveIndex].scrollIntoView({ block: "nearest" });
+  } else if (e.key === "Enter") {
+    e.preventDefault();
+    const target = surahActiveIndex >= 0 ? items[surahActiveIndex] : items[0];
+    selectSurahResult(target);
+  } else if (e.key === "Escape") {
+    closeSurahResults();
+    surahSearchInput.blur();
+  }
+});
+
+document.addEventListener("click", e => {
+  if (!surahResults.contains(e.target) && e.target !== surahSearchInput) {
+    closeSurahResults();
+    // restore the label for the current page if the user clicked away without picking one
+    syncSurahSelect(currentPage);
   }
 });
 
@@ -1088,106 +1268,426 @@ function escapeHtml(s) {
 const ARABIC_RE = /[\u0600-\u06FF\u0750-\u077F]/;
 function isArabic(text) { return ARABIC_RE.test(text); }
 
-// Strip Quranic diacritics/tashkeel (fatha, damma, kasra, shadda, tanwin, etc.)
-// so a plain-letter query like "الرحمن" matches text stored with full diacritics.
+// Strip ALL Arabic combining diacritics/tashkeel/Quranic annotation marks
+// (fatha, damma, kasra, shadda, sukun, tanwin, small-high waqf/pause signs, etc.)
+// so a plain-letter query like "الرحمن" or "فرعون" matches text stored with full
+// diacritics. \p{Mn} = Unicode "Mark, Nonspacing" — every combining mark in any
+// script, so this catches marks beyond the small set we'd otherwise have to list
+// by hand (e.g. the small-high marks used for Quranic pause/recitation cues).
 function stripTashkeel(text) {
-  return String(text).replace(/[\u0610-\u061A\u064B-\u065F\u06D6-\u06DC\u06DF-\u06E8\u06EA-\u06ED\u0670]/g, "");
+  return String(text).replace(/\p{Mn}/gu, "");
 }
-// Normalize alef/yaa/taa-marbuta variants for more forgiving matching
+// Normalize alef/yaa/taa-marbuta variants and remove tatweel for more forgiving matching
 function normalizeArabic(text) {
   return stripTashkeel(text)
-    .replace(/[إأآا]/g, "ا")
+    .replace(/[إأآاٱ]/g, "ا")
     .replace(/ى/g, "ي")
     .replace(/ة/g, "ه")
     .replace(/ـ/g, "");
 }
 
-function highlight(text, query, arabic) {
+// Phrase-aware match: splits the query into words (so multi-word searches like
+// "بسم الله" work, not just single words), then checks whether the ayah's words
+// contain a match for each query word, IN ORDER (not necessarily adjacent — other
+// words may sit between them, matching how people often recall a phrase loosely).
+// Each individual word match is an exact contiguous substring (e.g. "مبين" matches
+// "المبين" because the prefix sits before the match, not interleaved with it) —
+// NOT a skip-pattern/subsequence match (e.g. "كتب" no longer matches "كاتب").
+function arabicWordMatch(query, normalizedText) {
+  if (!query) return false;
+  const queryWords = query.split(/\s+/).filter(Boolean);
+  if (!queryWords.length) return false;
+  const textWords = normalizedText.split(/\s+/).filter(Boolean);
+
+  let qi = 0;
+  for (let i = 0; i < textWords.length && qi < queryWords.length; i++) {
+    if (textWords[i].includes(queryWords[qi])) qi++;
+  }
+  return qi === queryWords.length;
+}
+
+// Find the spans (in the normalized string) of each query word's exact match
+// within the ayah's words, in order — used to map back onto the original text
+// so the matched portion can be highlighted. Highlights only the matched
+// substring itself (e.g. just "مبين" within "المبين"), not the whole word.
+function findMatchingWordSpans(query, normalizedText) {
+  const queryWords = query.split(/\s+/).filter(Boolean);
+  if (!queryWords.length) return null;
+
+  const spans = [];
+  let qi = 0;
+  let pos = 0;
+  for (const token of normalizedText.split(/(\s+)/)) {
+    const isSpace = token.length === 0 || /^\s+$/.test(token);
+    if (!isSpace && qi < queryWords.length) {
+      const matchIdx = token.indexOf(queryWords[qi]);
+      if (matchIdx !== -1) {
+        spans.push([pos + matchIdx, pos + matchIdx + queryWords[qi].length]);
+        qi++;
+      }
+    }
+    pos += token.length;
+  }
+  return qi === queryWords.length ? spans : null;
+}
+
+function highlight(text, query) {
   if (!text) return "";
   const escaped = escapeHtml(text);
+  if (!query) return escaped;
   try {
-    if (arabic) {
-      // Build a regex over normalized text positions isn't feasible without offsets,
-      // so do a best-effort literal + normalized fallback highlight.
-      const re = new RegExp(`(${query.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")})`, "g");
-      if (re.test(escaped)) return escaped.replace(re, "<mark>$1</mark>");
-      return escaped; // diacritics differ; show unhighlighted rather than mis-highlight
-    }
     const re = new RegExp(`(${query.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")})`, "gi");
     return escaped.replace(re, "<mark>$1</mark>");
   } catch(e) { return escaped; }
 }
 
-async function runSearch(rawQuery) {
-  const mySeq = ++searchSeq;
-  const arabic = isArabic(rawQuery);
-  const query = arabic ? normalizeArabic(rawQuery).trim() : rawQuery;
+// Highlight Arabic text by finding the matching WORD(S) in the *normalized*
+// string (via phrase-aware word matching), then mapping those spans back onto
+// the original (diacritic-containing) string so each matched word is marked —
+// clearer than trying to mark individual, possibly non-adjacent letters.
+function highlightArabic(original, normalizedQuery) {
+  const escapedOriginal = escapeHtml(original);
+  if (!normalizedQuery) return escapedOriginal;
 
-  searchResults.classList.add("visible");
-  searchResults.innerHTML = `<div class="search-status"><span class="search-spinner"></span>${arabic ? "جاري البحث" : "Mencari"} "${escapeHtml(rawQuery)}"…</div>`;
+  // Build an index map: position in normalized string -> position in original string.
+  const map = [];
+  let norm = "";
+  for (let i = 0; i < original.length; i++) {
+    const before = norm.length;
+    norm += normalizeArabic(original[i]);
+    for (let j = before; j < norm.length; j++) map[j] = i;
+  }
 
-  const edition = arabic ? "quran-uthmani" : "ms.basmeih";
+  const spans = findMatchingWordSpans(normalizedQuery, norm);
+  if (!spans || !spans.length) return escapedOriginal;
 
+  const origSpans = spans
+    .map(([s, e]) => [map[s], map[e - 1] + 1])
+    .filter(([s, e]) => s != null && e != null)
+    .sort((a, b) => a[0] - b[0]);
+
+  if (!origSpans.length) return escapedOriginal;
+
+  let result = "";
+  let cursor = 0;
+  for (const [s, e] of origSpans) {
+    result += escapeHtml(original.slice(cursor, s));
+    result += "<mark>" + escapeHtml(original.slice(s, e)) + "</mark>";
+    cursor = e;
+  }
+  result += escapeHtml(original.slice(cursor));
+  return result;
+}
+
+/* ── Local full-Quran search index ──
+   Built once (lazily, on first search) by reusing fetchSurah(), which already
+   pulls both the Arabic (quran-uthmani, with per-ayah page numbers) and Malay
+   (ms.basmeih) text. Matching is then done entirely client-side, so results
+   no longer depend on the remote /search endpoint's literal, diacritic-sensitive
+   substring matching — this is what allows any Arabic word to be found. */
+let quranIndex = null;
+let indexBuildPromise = null;
+let quranIndexIncomplete = false;
+let quranIndexMissingCount = 0;
+let quranIndexSource = null; // "local" or "api" — which path actually populated the index
+let malayIndexSource = null; // "local" (dedicated Malay file), "local-data-file", or "api" — where Malay text actually came from
+let malayMissingCount = 0; // how many ayahs the dedicated Malay file (if any) didn't cover, falling back to the base source
+let arabicIndexSource = null; // "local" (dedicated Arabic file), "local-data-file", or "api" — where Arabic text actually came from
+let arabicMissingCount = 0; // how many ayahs the dedicated Arabic file (if any) didn't cover, falling back to the base source
+
+function buildIndexBatches(arr, size) {
+  const batches = [];
+  for (let i = 0; i < arr.length; i += size) batches.push(arr.slice(i, i + size));
+  return batches;
+}
+
+async function tryLoadLocalDataFile() {
   try {
-    let json = await fetchSearch(query, edition);
-    let matches = (json && json.data && json.data.matches) || [];
+    const res = await fetch(LOCAL_DATA_FILE, { cache: "no-cache" });
+    if (!res.ok) return null;
+    const json = await res.json();
+    // Expected shape: { ayahs: [ [surah, aya, page, arabic, malay], ... ] }
+    if (!json || !Array.isArray(json.ayahs) || !json.ayahs.length) return null;
 
-    // Arabic search with diacritics stripped sometimes still misses due to API's own
-    // normalization quirks — retry with the raw (un-normalized) query as a fallback.
-    if (arabic && !matches.length && query !== rawQuery.trim()) {
-      json = await fetchSearch(rawQuery.trim(), edition);
-      matches = (json && json.data && json.data.matches) || [];
-    }
-
-    if (mySeq !== searchSeq) return; // a newer search superseded this one
-
-    if (!matches.length) {
-      searchResults.innerHTML = `<div class="search-status">${arabic ? "لا توجد نتائج لـ" : "Tiada hasil dijumpai untuk"} "${escapeHtml(rawQuery)}".</div>`;
-      return;
-    }
-
-    const top = matches.slice(0, 30);
-    let html = "";
-    top.forEach(m => {
-      const surahNum = m.surah.number;
-      const ayaNum = m.numberInSurah;
-      const page = m.page || surahStartPage(surahNum);
-      const textHtml = arabic
-        ? `<div class="sr-arabic">${highlight(m.text, query, true)}</div>`
-        : `<div class="sr-malay">${highlight(m.text, query, false)}</div>`;
-      html += `
-        <div class="search-result-item" data-page="${page}">
-          <div class="sr-meta">
-            <span class="sr-key">${surahNum}:${ayaNum} · ${m.surah.englishName || ""}</span>
-            <span class="sr-page">page ${String(page).padStart(3,"0")}</span>
-          </div>
-          ${textHtml}
-        </div>`;
+    const flat = json.ayahs.map(([surah, aya, page, arabic, malay]) => {
+      const meta = SURAHS.find(s => s[0] === surah);
+      return {
+        surah,
+        surahArabic: meta ? meta[1] : "",
+        surahTranslit: meta ? meta[2] : "",
+        aya,
+        page,
+        arabic: arabic || "",
+        arabicNorm: normalizeArabic(arabic || ""),
+        malay: malay || "",
+        malayLower: (malay || "").toLowerCase()
+      };
     });
-    if (matches.length > top.length) {
-      html += `<div class="search-status">${arabic ? `عرض ${top.length} من ${matches.length} نتيجة` : `Menunjukkan ${top.length} daripada ${matches.length} hasil.`}</div>`;
-    }
-    searchResults.innerHTML = html;
-
-    searchResults.querySelectorAll(".search-result-item").forEach(item => {
-      item.addEventListener("click", () => {
-        const page = parseInt(item.dataset.page);
-        closeSearch();
-        searchInput.value = "";
-        searchClear.classList.remove("visible");
-        if (page) goToPage(page);
-      });
-    });
+    return flat;
   } catch(e) {
-    if (mySeq !== searchSeq) return;
-    searchResults.innerHTML = `<div class="search-status">⚠ ${arabic ? "فشل البحث. تحقق من الاتصال بالإنترنت." : "Carian gagal. Semak sambungan internet."}</div>`;
+    return null; // file missing, not valid JSON, or blocked — fall back to API
   }
 }
 
-async function fetchSearch(query, edition) {
-  const res = await fetch(`${TRANS_API}/search/${encodeURIComponent(query)}/all/${edition}`);
-  if (!res.ok) return null;
-  return res.json();
+// Loads a dedicated Malay-translation-only file, keyed by "surah:ayah", e.g.
+// { "1:1": { "t": "Dengan nama Allah..." }, "2:255": { "t": "..." }, ... }
+// Returns a Map from "surah:ayah" -> translation text, or null if unavailable.
+async function tryLoadLocalMalayFile() {
+  try {
+    const res = await fetch(LOCAL_MALAY_FILE, { cache: "no-cache" });
+    if (!res.ok) return null;
+    const json = await res.json();
+    if (!json || typeof json !== "object") return null;
+
+    const map = new Map();
+    for (const key of Object.keys(json)) {
+      if (!/^\d+:\d+$/.test(key)) continue; // skip anything not shaped like "surah:ayah"
+      const entry = json[key];
+      const text = entry && typeof entry.t === "string" ? entry.t : "";
+      if (text) map.set(key, text);
+    }
+    return map.size ? map : null;
+  } catch(e) {
+    return null; // file missing, not valid JSON, or blocked — fall back to other sources
+  }
+}
+
+// Loads a dedicated Arabic-only file, keyed by "surah:ayah", e.g.
+// { "1:1": { "surah": 1, "ayah": 1, "text": "بسم الله الرحمن الرحيم" }, ... }
+// Returns a Map from "surah:ayah" -> Arabic text, or null if unavailable.
+async function tryLoadLocalArabicFile() {
+  try {
+    const res = await fetch(LOCAL_ARABIC_FILE, { cache: "no-cache" });
+    if (!res.ok) return null;
+    const json = await res.json();
+    if (!json || typeof json !== "object") return null;
+
+    const map = new Map();
+    for (const key of Object.keys(json)) {
+      if (!/^\d+:\d+$/.test(key)) continue; // skip anything not shaped like "surah:ayah"
+      const entry = json[key];
+      const text = entry && typeof entry.text === "string" ? entry.text : "";
+      if (text) map.set(key, text);
+    }
+    return map.size ? map : null;
+  } catch(e) {
+    return null; // file missing, not valid JSON, or blocked — fall back to other sources
+  }
+}
+
+async function ensureIndex(onProgress) {
+  if (quranIndex) return quranIndex;
+  if (indexBuildPromise) return indexBuildPromise;
+
+  indexBuildPromise = (async () => {
+    // The dedicated Malay file (if present) always takes priority for Malay text,
+    // since it's the most direct, complete source the user supplied for it.
+    const malayMap = await tryLoadLocalMalayFile();
+
+    function applyMalayOverride(flat) {
+      if (!malayMap) return flat;
+      let appliedCount = 0;
+      flat.forEach(v => {
+        const text = malayMap.get(`${v.surah}:${v.aya}`);
+        if (text) {
+          v.malay = text;
+          v.malayLower = text.toLowerCase();
+          appliedCount++;
+        }
+      });
+      malayIndexSource = appliedCount > 0 ? "local" : malayIndexSource;
+      malayMissingCount = Math.max(0, TOTAL_AYAH_COUNT - appliedCount);
+      return flat;
+    }
+
+    // The dedicated Arabic file (if present) always takes priority for Arabic text,
+    // since it's the most direct source the user supplied for it — already plain,
+    // diacritic-free text, so it needs no tashkeel-stripping to be search-friendly.
+    const arabicMap = await tryLoadLocalArabicFile();
+
+    function applyArabicOverride(flat) {
+      if (!arabicMap) return flat;
+      let appliedCount = 0;
+      flat.forEach(v => {
+        const text = arabicMap.get(`${v.surah}:${v.aya}`);
+        if (text) {
+          v.arabic = text;
+          v.arabicNorm = normalizeArabic(text);
+          appliedCount++;
+        }
+      });
+      arabicIndexSource = appliedCount > 0 ? "local" : arabicIndexSource;
+      arabicMissingCount = Math.max(0, TOTAL_AYAH_COUNT - appliedCount);
+      return flat;
+    }
+
+    // Fast path: a pre-built local JSON file means zero API calls and near-instant search.
+    const local = await tryLoadLocalDataFile();
+    if (local) {
+      quranIndex = applyArabicOverride(applyMalayOverride(local));
+      quranIndexIncomplete = local.length < TOTAL_AYAH_COUNT;
+      quranIndexMissingCount = Math.max(0, TOTAL_AYAH_COUNT - local.length);
+      quranIndexSource = "local";
+      if (!malayIndexSource) malayIndexSource = "local-data-file";
+      if (!arabicIndexSource) arabicIndexSource = "local-data-file";
+      return quranIndex;
+    }
+
+    // Fallback: build the index live from the API (slower, 114 surahs x 2 requests).
+    // Still needed for Arabic + page numbers even when a dedicated Malay file covers
+    // the Malay text, since that file alone carries no Arabic or page information.
+    quranIndexSource = "api";
+    const surahNums = SURAHS.map(s => s[0]);
+    const batches = buildIndexBatches(surahNums, 5); // small batches — be gentle with the free API
+    let done = 0;
+    const failed = [];
+
+    for (const batch of batches) {
+      // Settle each surah independently so one failure doesn't sink the whole batch.
+      const results = await Promise.allSettled(batch.map(id => fetchSurah(id)));
+      results.forEach((r, i) => { if (r.status === "rejected") failed.push(batch[i]); });
+      done += batch.length;
+      if (onProgress) onProgress(done, surahNums.length);
+    }
+
+    const flat = [];
+    SURAHS.forEach(([num, ar, translit]) => {
+      const ayahs = transCache[num] || [];
+      ayahs.forEach(a => {
+        flat.push({
+          surah: num,
+          surahArabic: ar,
+          surahTranslit: translit,
+          aya: a.numberInSurah,
+          page: a.page || surahStartPage(num),
+          arabic: a.arabic || "",
+          arabicNorm: normalizeArabic(a.arabic || ""),
+          malay: a.translation || "",
+          malayLower: (a.translation || "").toLowerCase()
+        });
+      });
+    });
+
+    if (!flat.length) {
+      // Total failure — nothing usable was loaded. Clear the promise so the
+      // next search attempt retries from scratch instead of being stuck forever.
+      indexBuildPromise = null;
+      throw new Error("Index build failed completely");
+    }
+
+    quranIndex = applyArabicOverride(applyMalayOverride(flat));
+    if (!malayIndexSource) malayIndexSource = "api";
+    if (!arabicIndexSource) arabicIndexSource = "api";
+    quranIndexIncomplete = failed.length > 0 || flat.length < TOTAL_AYAH_COUNT;
+    quranIndexMissingCount = Math.max(0, TOTAL_AYAH_COUNT - flat.length);
+    return flat;
+  })();
+
+  return indexBuildPromise;
+}
+
+function renderResultItem(v, arabic, normQuery, rawQuery) {
+  const arabicHtml = arabic
+    ? highlightArabic(v.arabic, normQuery)
+    : escapeHtml(v.arabic);
+  const malayHtml = arabic
+    ? escapeHtml(v.malay)
+    : highlight(v.malay, rawQuery.trim());
+  return `
+    <div class="search-result-item" data-page="${v.page}">
+      <div class="sr-meta">
+        <span class="sr-key">${v.surah}:${v.aya} · ${v.surahTranslit}</span>
+        <span class="sr-page">page ${String(v.page).padStart(3,"0")}</span>
+      </div>
+      <div class="sr-malay sr-malay-primary">${malayHtml}</div>
+      <div class="sr-arabic sr-arabic-secondary">${arabicHtml}</div>
+    </div>`;
+}
+
+const RESULTS_BATCH_SIZE = 30;
+const TOTAL_AYAH_COUNT = 6236; // standard total ayahs in the Quran — used to detect an incomplete index
+
+function renderResultsList(matches, arabic, normQuery, rawQuery, visibleCount) {
+  const shown = matches.slice(0, visibleCount);
+  let html = "";
+
+  if (quranIndexIncomplete) {
+    const sourceHint = quranIndexSource === "local"
+      ? (arabic ? "ملف quran-data.json غير مكتمل — حاول إنشاءه من جديد." : "Fail quran-data.json tidak lengkap — cuba jana semula fail itu.")
+      : (arabic ? "حاول البحث مرة أخرى لاحقًا." : "Cuba cari semula sebentar lagi.");
+    html += `<div class="search-status">⚠ ${arabic ? `بعض الآيات غير مفهرسة (${quranIndexMissingCount} آية مفقودة من ${TOTAL_AYAH_COUNT}). ${sourceHint}` : `Sebahagian ayat tidak diindeks (${quranIndexMissingCount} daripada ${TOTAL_AYAH_COUNT} ayat hilang). ${sourceHint}`}</div>`;
+  }
+
+  html += shown.map(v => renderResultItem(v, arabic, normQuery, rawQuery)).join("");
+
+  if (matches.length > shown.length) {
+    const remaining = matches.length - shown.length;
+    const nextBatch = Math.min(remaining, RESULTS_BATCH_SIZE);
+    html += `<button class="search-show-more" data-next-count="${visibleCount + nextBatch}">${
+      arabic ? `إظهار ${nextBatch} نتيجة أخرى (${remaining} متبقية)` : `Tunjukkan ${nextBatch} lagi (${remaining} berbaki)`
+    }</button>`;
+  } else {
+    html += `<div class="search-status">${arabic ? `إجمالي ${matches.length} نتيجة` : `Jumlah ${matches.length} hasil.`}</div>`;
+  }
+
+  searchResults.innerHTML = html;
+
+  searchResults.querySelectorAll(".search-result-item").forEach(item => {
+    item.addEventListener("click", () => {
+      const page = parseInt(item.dataset.page);
+      closeSearch();
+      searchInput.value = "";
+      searchClear.classList.remove("visible");
+      if (page) goToPage(page);
+    });
+  });
+
+  const showMoreBtn = searchResults.querySelector(".search-show-more");
+  if (showMoreBtn) {
+    showMoreBtn.addEventListener("click", (e) => {
+      e.stopPropagation();
+      const nextCount = parseInt(showMoreBtn.dataset.nextCount);
+      renderResultsList(matches, arabic, normQuery, rawQuery, nextCount);
+    });
+  }
+}
+
+async function runSearch(rawQuery) {
+  const mySeq = ++searchSeq;
+  const arabic = isArabic(rawQuery);
+  const normQuery = arabic ? normalizeArabic(rawQuery).trim() : rawQuery.trim().toLowerCase();
+
+  searchResults.classList.add("visible");
+  searchResults.innerHTML = `<div class="search-status"><span class="search-spinner"></span>${arabic ? "جاري تحميل البيانات والبحث" : "Memuatkan data & mencari"} "${escapeHtml(rawQuery)}"…</div>`;
+
+  try {
+    const index = await ensureIndex((done, total) => {
+      if (mySeq !== searchSeq) return;
+      searchResults.innerHTML = `<div class="search-status"><span class="search-spinner"></span>Menyediakan indeks carian… (${done}/${total})</div>`;
+    });
+    if (mySeq !== searchSeq) return; // a newer search superseded this one
+
+    const matches = index.filter(v =>
+      arabic ? arabicWordMatch(normQuery, v.arabicNorm) : v.malayLower.includes(normQuery)
+    );
+
+    if (!matches.length) {
+      let html = `<div class="search-status">${arabic ? "لا توجد نتائج لـ" : "Tiada hasil dijumpai untuk"} "${escapeHtml(rawQuery)}".</div>`;
+      if (quranIndexIncomplete) {
+        const sourceHint = quranIndexSource === "local"
+          ? (arabic ? "ملف quran-data.json غير مكتمل — حاول إنشاءه من جديد." : "Fail quran-data.json tidak lengkap — cuba jana semula fail itu.")
+          : (arabic ? "حاول البحث مرة أخرى لاحقًا." : "Cuba cari semula sebentar lagi.");
+        html += `<div class="search-status">⚠ ${arabic ? `الفهرس غير مكتمل (${quranIndexMissingCount} آية مفقودة من ${TOTAL_AYAH_COUNT}) — قد تكون الكلمة في الجزء المفقود. ${sourceHint}` : `Indeks tidak lengkap (${quranIndexMissingCount} daripada ${TOTAL_AYAH_COUNT} ayat hilang) — perkataan ini mungkin berada dalam bahagian yang hilang. ${sourceHint}`}</div>`;
+      }
+      searchResults.innerHTML = html;
+      return;
+    }
+
+    renderResultsList(matches, arabic, normQuery, rawQuery, RESULTS_BATCH_SIZE);
+  } catch(e) {
+    if (mySeq !== searchSeq) return;
+    searchResults.innerHTML = `<div class="search-status">⚠ ${arabic ? "فشل البحث. تحقق من الاتصال بالإنترنت وحاول مرة أخرى." : "Carian gagal. Semak sambungan internet dan cuba lagi."}</div>`;
+  }
 }
 
 function surahStartPage(num) {
