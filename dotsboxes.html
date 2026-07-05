@@ -1,0 +1,673 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Dots & Boxes.</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;700&family=Playfair+Display:wght@700;900&display=swap');
+
+  :root{
+    --cream: #e9e3d1;
+    --card: #f7f3e7;
+    --panel: #fbf8f0;
+    --ink: #211c15;
+    --muted: #8c8570;
+    --line: #ddd5bd;
+    --red: #d8402c;
+    --blue: #2b56d1;
+    --gold: #e8b923;
+  }
+
+  *{box-sizing:border-box;}
+
+  body{
+    margin:0;
+    min-height:100vh;
+    background: var(--cream);
+    font-family:'JetBrains Mono', monospace;
+    color: var(--ink);
+    display:flex;
+    justify-content:center;
+    padding: 40px 16px 60px;
+  }
+
+  .card{
+    width:100%;
+    max-width: 620px;
+    background: var(--card);
+    border: 2px solid var(--ink);
+    border-radius: 18px;
+    box-shadow: 0 8px 0 rgba(33,28,21,0.08);
+    padding: 34px 34px 26px;
+  }
+
+  h1{
+    font-family:'Playfair Display', serif;
+    font-weight: 900;
+    font-size: 2.4rem;
+    margin: 0;
+    letter-spacing: -0.01em;
+    text-align: center;
+  }
+  h1 .dot{ color: var(--red); }
+
+  .subtitle{
+    margin-top:6px;
+    font-size: 0.7rem;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    color: var(--muted);
+    text-align: center;
+  }
+
+  hr{
+    border:none;
+    border-top:1px solid var(--line);
+    margin: 22px 0;
+  }
+
+  .row{
+    display:flex;
+    flex-wrap:wrap;
+    align-items:center;
+    gap: 14px;
+    margin-bottom: 16px;
+  }
+
+  .seg{
+    display:inline-flex;
+    border: 2px solid var(--ink);
+    border-radius: 10px;
+    overflow:hidden;
+  }
+  .seg button{
+    font-family:'JetBrains Mono', monospace;
+    font-size: 0.82rem;
+    font-weight:500;
+    padding: 9px 16px;
+    background: var(--card);
+    color: var(--ink);
+    border:none;
+    border-right: 2px solid var(--ink);
+    cursor:pointer;
+    transition: background .12s ease, color .12s ease;
+  }
+  .seg button:last-child{ border-right:none; }
+  .seg button.active{
+    background: var(--ink);
+    color: var(--card);
+  }
+  .seg button:hover:not(.active){
+    background: #efe9d8;
+  }
+
+  .btn{
+    font-family:'JetBrains Mono', monospace;
+    font-size: 0.82rem;
+    font-weight:500;
+    padding: 9px 18px;
+    background: var(--card);
+    color: var(--ink);
+    border: 2px solid var(--ink);
+    border-radius: 10px;
+    cursor:pointer;
+    transition: transform .1s ease, box-shadow .1s ease;
+  }
+  .btn:hover{ box-shadow: 0 3px 0 rgba(33,28,21,0.2); transform: translateY(-1px); }
+  .btn:active{ transform: translateY(1px); box-shadow:none; }
+
+  #difficultyRow{ display:none; }
+  #difficultyRow.show{ display:flex; }
+
+  .scoreboard{
+    display:flex;
+    justify-content:space-between;
+    align-items:center;
+    background: var(--panel);
+    border: 1px solid var(--line);
+    border-radius: 12px;
+    padding: 14px 18px;
+    margin-bottom: 18px;
+  }
+  .player-chip{ display:flex; align-items:center; gap:9px; font-size:0.85rem; }
+  .swatch{
+    width:14px; height:14px;
+    border: 2px solid var(--ink);
+    border-radius: 3px;
+    display:inline-block;
+  }
+  .player-chip .count{ font-weight:700; font-size:1rem; margin-left:2px; }
+  .turn-indicator{
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    min-width: 60px;
+  }
+  .turn-arrow{
+    font-size: 1.6rem;
+    font-weight: 700;
+    line-height: 1;
+    animation: blink 1.1s infinite;
+  }
+  .turn-arrow.hidden{ visibility:hidden; }
+  @keyframes blink{
+    0%,100%{ opacity:1; } 50%{ opacity:0.15; }
+  }
+
+  .board-panel{
+    position: relative;
+    background: var(--panel);
+    border: 1px solid var(--line);
+    border-radius: 14px;
+    padding: 18px;
+    display:flex;
+    justify-content:center;
+    overflow-x:auto;
+    background-image: repeating-linear-gradient(
+      to bottom,
+      transparent 0px, transparent 15px,
+      rgba(33,28,21,0.045) 16px
+    );
+  }
+
+  .thinking-overlay{
+    position: absolute;
+    top: 10px;
+    left: 50%;
+    transform: translateX(-50%) translateY(-6px);
+    background: var(--ink);
+    color: var(--card);
+    font-size: 0.72rem;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    padding: 7px 16px;
+    border-radius: 20px;
+    white-space: nowrap;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity .18s ease, transform .18s ease;
+    z-index: 5;
+  }
+  .thinking-overlay.show{
+    opacity: 1;
+    transform: translateX(-50%) translateY(0);
+  }
+
+  svg{ display:block; max-width:100%; height:auto; }
+
+  .edge-hit{
+    stroke: transparent;
+    stroke-width: 20;
+    cursor:pointer;
+    fill:none;
+  }
+  .edge-hit:hover{ stroke: rgba(232,185,35,0.35); }
+  .edge-drawn{ fill:none; stroke-linecap: round; }
+
+  .box-fill{ stroke: var(--ink); stroke-width:3; rx:3; }
+
+  .footer-hint{
+    text-align:center;
+    color: var(--muted);
+    font-size: 0.72rem;
+    letter-spacing: 0.06em;
+    margin-top: 18px;
+    text-transform: uppercase;
+  }
+
+  .banner{
+    display:none;
+    text-align:center;
+    background: var(--ink);
+    color: var(--card);
+    border-radius: 10px;
+    padding: 12px 16px;
+    margin-bottom: 16px;
+    font-size: 0.95rem;
+    font-weight: 700;
+    letter-spacing: 0.02em;
+  }
+  .banner.show{ display:block; }
+
+  @media (max-width:480px){
+    .card{ padding: 24px 18px 20px; }
+    h1{ font-size: 1.9rem; }
+  }
+</style>
+</head>
+<body>
+<script src="nav.js"></script>
+  
+<div class="card">
+  <h1>Dots &amp; Boxes<span class="dot">.</span></h1>
+  <div class="subtitle">a line game, drawn by hand</div>
+
+  <hr>
+
+  <div class="row" id="modeRow">
+    <div class="seg" data-group="mode">
+      <button data-value="2p" class="active">2 Players</button>
+      <button data-value="cpu">vs Computer</button>
+    </div>
+  </div>
+
+  <div class="row" id="sizeRow">
+    <div class="seg" data-group="size">
+      <button data-value="4" class="active">Small (4×4)</button>
+      <button data-value="5">Medium (5×5)</button>
+      <button data-value="6">Large (6×6)</button>
+    </div>
+  </div>
+
+  <div class="row" id="difficultyRow">
+    <div class="seg" data-group="difficulty">
+      <button data-value="easy" class="active">Easy</button>
+      <button data-value="moderate">Moderate</button>
+      <button data-value="hard">Hard</button>
+    </div>
+  </div>
+
+  <div class="row">
+    <button class="btn" id="newGameBtn">New Game</button>
+  </div>
+
+  <div class="banner" id="banner"></div>
+
+  <div class="scoreboard">
+    <div class="player-chip">
+      <span class="swatch" style="background:var(--red)"></span>
+      <span id="p1Label">Player 1</span>
+      <span class="count" id="p1Score">0</span>
+    </div>
+    <div class="turn-indicator" id="turnIndicator">
+      <span class="turn-arrow" id="turnArrow">←</span>
+    </div>
+    <div class="player-chip">
+      <span id="p2Label">Player 2</span>
+      <span class="count" id="p2Score">0</span>
+      <span class="swatch" style="background:var(--blue)"></span>
+    </div>
+  </div>
+
+  <div class="board-panel">
+    <div class="thinking-overlay" id="thinkingOverlay">Computer is thinking…</div>
+    <svg id="board"></svg>
+  </div>
+
+  <div class="footer-hint">Click a line to claim it &nbsp;|&nbsp; Complete a box for another turn</div>
+</div>
+
+<script>
+(function(){
+  const COLORS = ['#d8402c', '#2b56d1'];
+  const SPACING = 64;
+  const MARGIN = 34;
+
+  let state = {
+    mode: '2p',        // '2p' | 'cpu'
+    size: 4,           // boxes per side
+    difficulty: 'easy',
+    boxRows: 4,
+    boxCols: 4,
+    hEdges: [],        // hEdges[r][c] -> null | 0 | 1   (r: 0..boxRows, c: 0..boxCols-1)
+    vEdges: [],        // vEdges[r][c] -> null | 0 | 1   (r: 0..boxRows-1, c: 0..boxCols)
+    boxOwner: [],       // boxOwner[r][c] -> null | 0 | 1
+    scores: [0,0],
+    currentPlayer: 0,
+    gameOver: false,
+    locked: false
+  };
+
+  // ---------- setup segmented controls ----------
+  document.querySelectorAll('.seg').forEach(seg => {
+    seg.addEventListener('click', e => {
+      const btn = e.target.closest('button');
+      if(!btn) return;
+      const group = seg.dataset.group;
+      seg.querySelectorAll('button').forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+      if(group === 'mode'){
+        state.mode = btn.dataset.value;
+        document.getElementById('difficultyRow').classList.toggle('show', state.mode === 'cpu');
+        updateLabels();
+      } else if(group === 'size'){
+        state.size = parseInt(btn.dataset.value, 10);
+      } else if(group === 'difficulty'){
+        state.difficulty = btn.dataset.value;
+      }
+      newGame();
+    });
+  });
+
+  document.getElementById('newGameBtn').addEventListener('click', newGame);
+
+  function updateLabels(){
+    if(state.mode === 'cpu'){
+      document.getElementById('p1Label').textContent = 'You';
+      document.getElementById('p2Label').textContent = 'Computer';
+    } else {
+      document.getElementById('p1Label').textContent = 'Player 1';
+      document.getElementById('p2Label').textContent = 'Player 2';
+    }
+  }
+
+  // ---------- game setup ----------
+  function newGame(){
+    state.boxRows = state.size;
+    state.boxCols = state.size;
+    state.hEdges = Array.from({length: state.boxRows+1}, () => Array(state.boxCols).fill(null));
+    state.vEdges = Array.from({length: state.boxRows}, () => Array(state.boxCols+1).fill(null));
+    state.boxOwner = Array.from({length: state.boxRows}, () => Array(state.boxCols).fill(null));
+    state.scores = [0,0];
+    state.currentPlayer = 0;
+    state.gameOver = false;
+    state.locked = false;
+    document.getElementById('banner').classList.remove('show');
+    updateLabels();
+    render();
+  }
+
+  // ---------- helpers ----------
+  function adjacentBoxes(type, r, c){
+    // returns array of {r,c} boxes touching this edge
+    if(type === 'h'){
+      const boxes = [];
+      if(r-1 >= 0) boxes.push({r: r-1, c});
+      if(r <= state.boxRows-1) boxes.push({r, c});
+      return boxes;
+    } else {
+      const boxes = [];
+      if(c-1 >= 0) boxes.push({r, c: c-1});
+      if(c <= state.boxCols-1) boxes.push({r, c});
+      return boxes;
+    }
+  }
+
+  function boxSideCount(hEdges, vEdges, r, c){
+    let n = 0;
+    if(hEdges[r][c] !== null) n++;
+    if(hEdges[r+1][c] !== null) n++;
+    if(vEdges[r][c] !== null) n++;
+    if(vEdges[r][c+1] !== null) n++;
+    return n;
+  }
+
+  function getUndrawnEdges(){
+    const edges = [];
+    for(let r=0; r<=state.boxRows; r++)
+      for(let c=0; c<state.boxCols; c++)
+        if(state.hEdges[r][c] === null) edges.push({type:'h', r, c});
+    for(let r=0; r<state.boxRows; r++)
+      for(let c=0; c<=state.boxCols; c++)
+        if(state.vEdges[r][c] === null) edges.push({type:'v', r, c});
+    return edges;
+  }
+
+  function wouldComplete(type, r, c){
+    const boxes = adjacentBoxes(type, r, c);
+    return boxes.some(b => boxSideCount(state.hEdges, state.vEdges, b.r, b.c) === 3);
+  }
+
+  function isSafeMove(type, r, c){
+    const boxes = adjacentBoxes(type, r, c);
+    return boxes.every(b => boxSideCount(state.hEdges, state.vEdges, b.r, b.c) < 2);
+  }
+
+  // ---------- move application ----------
+  function applyEdge(hEdges, vEdges, boxOwner, type, r, c, player){
+    if(type === 'h') hEdges[r][c] = player; else vEdges[r][c] = player;
+    const boxes = adjacentBoxes(type, r, c);
+    let completed = 0;
+    boxes.forEach(b => {
+      if(boxOwner[b.r][b.c] === null && boxSideCount(hEdges, vEdges, b.r, b.c) === 4){
+        boxOwner[b.r][b.c] = player;
+        completed++;
+      }
+    });
+    return completed;
+  }
+
+  function playMove(type, r, c){
+    if(state.gameOver || state.locked) return;
+    if(type === 'h' && state.hEdges[r][c] !== null) return;
+    if(type === 'v' && state.vEdges[r][c] !== null) return;
+
+    const player = state.currentPlayer;
+    const completed = applyEdge(state.hEdges, state.vEdges, state.boxOwner, type, r, c, player);
+    if(completed > 0) state.scores[player] += completed;
+
+    render();
+
+    if(isBoardFull()){
+      endGame();
+      return;
+    }
+
+    if(completed === 0){
+      state.currentPlayer = 1 - state.currentPlayer;
+    }
+
+    maybeTriggerComputer();
+  }
+
+  function isBoardFull(){
+    for(let r=0;r<state.boxRows;r++)
+      for(let c=0;c<state.boxCols;c++)
+        if(state.boxOwner[r][c] === null) return false;
+    return true;
+  }
+
+  function endGame(){
+    state.gameOver = true;
+    const banner = document.getElementById('banner');
+    const [s1, s2] = state.scores;
+    let msg;
+    const p1name = state.mode === 'cpu' ? 'You' : 'Player 1';
+    const p2name = state.mode === 'cpu' ? 'Computer' : 'Player 2';
+    if(s1 === s2) msg = `It's a tie! ${s1} – ${s2}`;
+    else if(s1 > s2) msg = `${p1name} win${p1name==='You'?'':'s'}! ${s1} – ${s2}`;
+    else msg = `${p2name} wins! ${s2} – ${s1}`;
+    banner.textContent = msg;
+    banner.classList.add('show');
+    setThinking(false);
+    updateTurnIndicator();
+  }
+
+  function maybeTriggerComputer(){
+    updateTurnIndicator();
+    if(state.gameOver) { setThinking(false); return; }
+    if(state.mode === 'cpu' && state.currentPlayer === 1){
+      state.locked = true;
+      setThinking(true);
+      setTimeout(computerTurn, 550);
+    } else {
+      setThinking(false);
+    }
+  }
+
+  function computerTurn(){
+    if(state.gameOver) { state.locked = false; setThinking(false); return; }
+    const move = chooseComputerMove();
+    state.locked = false;
+    if(move) playMove(move.type, move.r, move.c);
+  }
+
+  // ---------- AI ----------
+  function cloneEdgesState(){
+    return {
+      h: state.hEdges.map(row => row.slice()),
+      v: state.vEdges.map(row => row.slice())
+    };
+  }
+
+  function getCaptureMoves(){
+    return getUndrawnEdges().filter(e => wouldComplete(e.type, e.r, e.c));
+  }
+  function getSafeMoves(){
+    return getUndrawnEdges().filter(e => isSafeMove(e.type, e.r, e.c));
+  }
+  function pickRandom(arr){ return arr[Math.floor(Math.random()*arr.length)]; }
+
+  function simulateLoss(edge){
+    // deep-ish copy of edges + a dummy owner grid, apply edge, then greedily
+    // simulate opponent capturing the resulting chain(s); return boxes captured.
+    const h = state.hEdges.map(row => row.slice());
+    const v = state.vEdges.map(row => row.slice());
+    const owner = state.boxOwner.map(row => row.slice());
+    applyEdge(h, v, owner, edge.type, edge.r, edge.c, -1);
+
+    let captured = 0;
+    let progress = true;
+    while(progress){
+      progress = false;
+      outer:
+      for(let r=0; r<state.boxRows; r++){
+        for(let c=0; c<state.boxCols; c++){
+          if(owner[r][c] !== null) continue;
+          if(boxSideCount(h, v, r, c) === 3){
+            // find missing edge and draw it
+            if(h[r][c] === null){ applyEdge(h,v,owner,'h',r,c,-1); }
+            else if(h[r+1][c] === null){ applyEdge(h,v,owner,'h',r+1,c,-1); }
+            else if(v[r][c] === null){ applyEdge(h,v,owner,'v',r,c,-1); }
+            else if(v[r][c+1] === null){ applyEdge(h,v,owner,'v',r,c+1,-1); }
+            captured++;
+            progress = true;
+            break outer;
+          }
+        }
+      }
+    }
+    return captured;
+  }
+
+  function chooseComputerMove(){
+    const captures = getCaptureMoves();
+    const difficulty = state.difficulty;
+
+    if(difficulty === 'easy'){
+      if(captures.length > 0 && Math.random() < 0.3) return pickRandom(captures);
+      const all = getUndrawnEdges();
+      return pickRandom(all);
+    }
+
+    if(difficulty === 'moderate'){
+      if(captures.length > 0) return pickRandom(captures);
+      const safe = getSafeMoves();
+      if(safe.length > 0) return pickRandom(safe);
+      const all = getUndrawnEdges();
+      return pickRandom(all);
+    }
+
+    // hard
+    if(captures.length > 0) return pickRandom(captures);
+    const safe = getSafeMoves();
+    if(safe.length > 0) return pickRandom(safe);
+
+    const all = getUndrawnEdges();
+    let best = null, bestLoss = Infinity;
+    all.forEach(e => {
+      const loss = simulateLoss(e);
+      if(loss < bestLoss){ bestLoss = loss; best = [e]; }
+      else if(loss === bestLoss){ best.push(e); }
+    });
+    return pickRandom(best);
+  }
+
+  // ---------- rendering ----------
+  function updateTurnIndicator(){
+    document.getElementById('p1Score').textContent = state.scores[0];
+    document.getElementById('p2Score').textContent = state.scores[1];
+
+    const arrow = document.getElementById('turnArrow');
+
+    if(state.gameOver){
+      arrow.classList.add('hidden');
+      return;
+    }
+    arrow.classList.remove('hidden');
+
+    const isP1 = state.currentPlayer === 0;
+    arrow.textContent = isP1 ? '←' : '→';
+    arrow.style.color = isP1 ? COLORS[0] : COLORS[1];
+  }
+
+  function setThinking(on){
+    document.getElementById('thinkingOverlay').classList.toggle('show', !!on);
+  }
+
+  function render(){
+    updateTurnIndicator();
+
+    const rows = state.boxRows, cols = state.boxCols;
+    const width = MARGIN*2 + cols*SPACING;
+    const height = MARGIN*2 + rows*SPACING;
+    const svg = document.getElementById('board');
+    svg.setAttribute('viewBox', `0 0 ${width} ${height}`);
+    svg.setAttribute('width', width);
+    svg.setAttribute('height', height);
+
+    let parts = [];
+
+    const X = c => MARGIN + c*SPACING;
+    const Y = r => MARGIN + r*SPACING;
+
+    // boxes (filled) first, so lines/dots sit above
+    for(let r=0;r<rows;r++){
+      for(let c=0;c<cols;c++){
+        const owner = state.boxOwner[r][c];
+        if(owner !== null){
+          const pad = 9;
+          parts.push(`<rect class="box-fill" x="${X(c)+pad}" y="${Y(r)+pad}" width="${SPACING-pad*2}" height="${SPACING-pad*2}" fill="${COLORS[owner]}"></rect>`);
+        }
+      }
+    }
+
+    // horizontal edges
+    for(let r=0;r<=rows;r++){
+      for(let c=0;c<cols;c++){
+        const val = state.hEdges[r][c];
+        const x1=X(c), y1=Y(r), x2=X(c+1), y2=Y(r);
+        if(val !== null){
+          parts.push(`<line class="edge-drawn" x1="${x1}" y1="${y1}" x2="${x2}" y2="${y2}" stroke="${COLORS[val]}" stroke-width="7"></line>`);
+        } else {
+          parts.push(`<line class="edge-hit" x1="${x1}" y1="${y1}" x2="${x2}" y2="${y2}" onclick="window.__dbClick('h',${r},${c})"></line>`);
+        }
+      }
+    }
+
+    // vertical edges
+    for(let r=0;r<rows;r++){
+      for(let c=0;c<=cols;c++){
+        const val = state.vEdges[r][c];
+        const x1=X(c), y1=Y(r), x2=X(c), y2=Y(r+1);
+        if(val !== null){
+          parts.push(`<line class="edge-drawn" x1="${x1}" y1="${y1}" x2="${x2}" y2="${y2}" stroke="${COLORS[val]}" stroke-width="7"></line>`);
+        } else {
+          parts.push(`<line class="edge-hit" x1="${x1}" y1="${y1}" x2="${x2}" y2="${y2}" onclick="window.__dbClick('v',${r},${c})"></line>`);
+        }
+      }
+    }
+
+    // dots
+    for(let r=0;r<=rows;r++){
+      for(let c=0;c<=cols;c++){
+        parts.push(`<circle cx="${X(c)}" cy="${Y(r)}" r="5.5" fill="#211c15"></circle>`);
+      }
+    }
+
+    svg.innerHTML = parts.join('');
+  }
+
+  window.__dbClick = function(type, r, c){
+    if(state.mode === 'cpu' && state.currentPlayer === 1) return;
+    playMove(type, r, c);
+  };
+
+  // ---------- init ----------
+  newGame();
+})();
+</script>
+
+</body>
+</html>
