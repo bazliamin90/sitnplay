@@ -1,0 +1,868 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Decant. — a color sort puzzle</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,wght@0,600;0,700;1,600&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --cream-deep:   #e4dcc8;
+    --cream:        #ece4d1;
+    --card:         #f6f0e2;
+    --panel:        #efe7d5;
+    --ink:          #262220;
+    --ink-soft:     #7a7266;
+    --line:         #d8cdb3;
+    --line-strong:  #262220;
+    --accent:       #c1502e;
+    --accent-soft:  #e0c9b8;
+  }
+
+  *{ box-sizing:border-box; }
+
+  html,body{
+    margin:0;
+    min-height:100vh;
+    background:
+      radial-gradient(ellipse at 20% 0%, #efe8d8 0%, transparent 55%),
+      radial-gradient(ellipse at 100% 100%, #e2d8bf 0%, transparent 55%),
+      var(--cream-deep);
+    font-family:'JetBrains Mono', monospace;
+    color:var(--ink);
+    display:flex;
+    align-items:flex-start;
+    justify-content:center;
+    padding:36px 16px;
+  }
+
+  .wrap{
+    width:100%;
+    max-width:600px;
+    background:var(--card);
+    border:1px solid var(--line);
+    border-radius:28px;
+    box-shadow:0 1px 0 rgba(255,255,255,0.6) inset, 0 20px 40px -20px rgba(60,45,20,0.35);
+    padding:40px 36px 34px;
+    position:relative;
+  }
+
+  h1{
+    font-family:'Fraunces', serif;
+    font-weight:700;
+    font-size:44px;
+    text-align:center;
+    margin:0;
+    letter-spacing:-0.5px;
+  }
+  h1 span{ color:var(--accent); }
+
+  .subtitle{
+    text-align:center;
+    font-size:11px;
+    letter-spacing:3px;
+    color:var(--ink-soft);
+    text-transform:uppercase;
+    margin-top:10px;
+    margin-bottom:26px;
+  }
+
+  hr{
+    border:none;
+    border-top:1px solid var(--line);
+    margin:0 0 26px;
+  }
+
+  /* segmented control */
+  .segment{
+    display:flex;
+    border:1.5px solid var(--line-strong);
+    border-radius:14px;
+    overflow:hidden;
+    background:var(--card);
+    margin-bottom:16px;
+  }
+  .segment button{
+    flex:1;
+    border:none;
+    background:transparent;
+    font-family:'JetBrains Mono', monospace;
+    font-weight:600;
+    font-size:14px;
+    color:var(--ink);
+    padding:13px 10px;
+    cursor:pointer;
+    border-right:1.5px solid var(--line-strong);
+    transition:background .15s ease, color .15s ease;
+  }
+  .segment button:last-child{ border-right:none; }
+  .segment button.active{
+    background:var(--ink);
+    color:var(--card);
+  }
+  .segment button:not(.active):hover{ background:var(--cream); }
+
+  .row{
+    display:flex;
+    gap:12px;
+    margin-bottom:16px;
+    flex-wrap:wrap;
+  }
+
+  .btn{
+    border:1.5px solid var(--line-strong);
+    border-radius:14px;
+    background:var(--card);
+    font-family:'JetBrains Mono', monospace;
+    font-weight:600;
+    font-size:14px;
+    padding:13px 18px;
+    cursor:pointer;
+    color:var(--ink);
+    transition:background .15s ease, transform .05s ease;
+  }
+  .btn:hover:not(:disabled){ background:var(--cream); }
+  .btn:active:not(:disabled){ transform:translateY(1px); }
+  .btn:disabled{ opacity:.4; cursor:not-allowed; }
+  .btn.primary{ background:var(--ink); color:var(--card); border-color:var(--ink); }
+  .btn.primary:hover:not(:disabled){ background:#3a3430; }
+  .btn.grow{ flex:1; }
+
+  .meta-row{
+    display:flex;
+    align-items:center;
+    justify-content:flex-end;
+    gap:22px;
+    margin-bottom:22px;
+    flex-wrap:wrap;
+  }
+  .meta-item{ display:flex; align-items:center; gap:10px; }
+  .meta-label{
+    font-size:11px;
+    letter-spacing:2px;
+    color:var(--ink-soft);
+    text-transform:uppercase;
+    font-weight:600;
+  }
+  .meta-value{
+    border:1.5px solid var(--line-strong);
+    border-radius:10px;
+    background:var(--card);
+    padding:8px 14px;
+    font-weight:700;
+    font-size:15px;
+    min-width:64px;
+    text-align:center;
+  }
+  /* board */
+  .board{
+    background:
+      radial-gradient(circle at 18% 15%, rgba(255,255,255,0.55), transparent 42%),
+      radial-gradient(circle at 85% 85%, rgba(193,80,46,0.08), transparent 48%),
+      repeating-linear-gradient(45deg, rgba(38,34,32,0.035) 0, rgba(38,34,32,0.035) 1px, transparent 1px, transparent 11px),
+      var(--panel);
+    border:1px solid var(--line);
+    border-radius:20px;
+    padding:28px 16px 22px;
+    display:flex;
+    flex-wrap:wrap;
+    justify-content:center;
+    align-content:flex-start;
+    gap:16px 12px;
+    min-height:160px;
+    box-shadow:
+      inset 0 2px 8px rgba(38,34,32,0.12),
+      inset 0 -1px 0 rgba(255,255,255,0.4);
+  }
+
+  .tube-slot{
+    display:flex;
+    flex-direction:column;
+    align-items:center;
+    cursor:pointer;
+    user-select:none;
+  }
+
+  .tube{
+    width:40px;
+    height:118px;
+    border:2px solid var(--ink);
+    border-top:none;
+    border-radius:0 0 20px 20px;
+    background:rgba(255,255,255,0.35);
+    display:flex;
+    flex-direction:column-reverse;
+    align-items:center;
+    padding:4px;
+    gap:3px;
+    position:relative;
+    transition:transform .18s ease, box-shadow .18s ease, border-color .18s ease;
+    box-shadow:0 6px 14px -8px rgba(30,20,10,0.4);
+  }
+  .tube::before{
+    content:"";
+    position:absolute;
+    left:-2px; right:-2px; top:-3px;
+    height:6px;
+    background:var(--ink);
+    border-radius:3px;
+  }
+
+  .tube-slot.selected .tube{
+    transform:translateY(-12px);
+    box-shadow:0 16px 22px -10px rgba(193,80,46,0.5);
+    border-color:var(--accent);
+  }
+  .tube-slot.hint .tube{
+    animation:pulse 0.9s ease-in-out 2;
+  }
+  @keyframes pulse{
+    0%,100%{ border-color:var(--ink); }
+    50%{ border-color:var(--accent); box-shadow:0 0 0 6px rgba(193,80,46,0.18); }
+  }
+
+  .tube-slot.pouring .tube{
+    transform:translateY(-18px);
+    transition:transform .2s ease-out;
+    border-color:var(--accent);
+    box-shadow:0 16px 22px -10px rgba(193,80,46,0.5);
+    z-index:5;
+  }
+
+  .pour-clone{
+    position:fixed;
+    top:0;
+    left:0;
+    z-index:9999;
+    pointer-events:none;
+    box-shadow:
+      inset -4px -6px 8px rgba(0,0,0,0.25),
+      inset 4px 5px 7px rgba(255,255,255,0.45),
+      0 5px 10px rgba(30,20,10,0.35);
+  }
+
+  .ball{
+    width:24px;
+    height:24px;
+    border-radius:50%;
+    flex-shrink:0;
+    box-shadow:
+      inset -4px -6px 8px rgba(0,0,0,0.25),
+      inset 4px 5px 7px rgba(255,255,255,0.45),
+      0 2px 3px rgba(0,0,0,0.2);
+  }
+
+  .tube-index{
+    margin-top:10px;
+    font-size:11px;
+    color:var(--ink-soft);
+    letter-spacing:1px;
+  }
+
+  .footer-hint{
+    text-align:center;
+    font-size:12px;
+    color:var(--ink-soft);
+    margin-top:24px;
+    letter-spacing:.5px;
+  }
+
+  /* win overlay */
+  .overlay{
+    position:absolute;
+    inset:0;
+    background:rgba(38,34,32,0.55);
+    border-radius:28px;
+    display:none;
+    align-items:center;
+    justify-content:center;
+    padding:20px;
+  }
+  .overlay.show{ display:flex; }
+  .overlay-card{
+    background:var(--card);
+    border-radius:20px;
+    border:1.5px solid var(--ink);
+    padding:34px 30px;
+    text-align:center;
+    max-width:320px;
+    box-shadow:0 20px 40px -10px rgba(0,0,0,0.4);
+  }
+  .overlay-card h2{
+    font-family:'Fraunces', serif;
+    margin:0 0 6px;
+    font-size:28px;
+  }
+  .overlay-card p{
+    color:var(--ink-soft);
+    font-size:13px;
+    margin:0 0 20px;
+  }
+  .overlay-actions{
+    display:flex;
+    gap:10px;
+  }
+
+  /* loading overlay */
+  .spinner{
+    width:34px;
+    height:34px;
+    margin:0 auto 16px;
+    border-radius:50%;
+    border:3px solid var(--line);
+    border-top-color:var(--accent);
+    animation:spin .8s linear infinite;
+  }
+  @keyframes spin{ to{ transform:rotate(360deg); } }
+  .loading-card p{
+    color:var(--ink-soft);
+    font-size:13px;
+    margin:0;
+  }
+
+  @media (max-width:480px){
+    .wrap{ padding:24px 14px 22px; }
+    h1{ font-size:34px; }
+    .board{ padding:22px 8px 16px; gap:12px 8px; }
+    .tube{ width:32px; height:90px; border-width:2px; padding:3px; gap:2px; }
+    .ball{ width:18px; height:18px; }
+  }
+</style>
+</head>
+<body>
+<script src="nav.js"></script>
+
+<div class="wrap">
+  <h1>Decant<span>.</span></h1>
+  <div class="subtitle">A color sort puzzle, poured fresh</div>
+  <hr>
+
+  <div class="segment" id="difficultySegment">
+    <button data-diff="easy" class="active">Easy (3)</button>
+    <button data-diff="moderate">Moderate (5)</button>
+    <button data-diff="hard">Hard (7)</button>
+  </div>
+
+  <div class="row">
+    <button class="btn primary grow" id="newBtn">New</button>
+  </div>
+
+  <div class="row">
+    <button class="btn" id="undoBtn">Undo</button>
+    <button class="btn" id="hintBtn">Hint (3)</button>
+    <button class="btn" id="resetBtn">Reset</button>
+  </div>
+
+  <div class="meta-row">
+    <div class="meta-item">
+      <span class="meta-label">Moves</span>
+      <div class="meta-value" id="movesValue">0</div>
+    </div>
+  </div>
+
+  <div class="board" id="board"></div>
+
+  <div class="footer-hint">Click a tube to select &nbsp;|&nbsp; click another to pour</div>
+
+  <div class="overlay" id="overlay">
+    <div class="overlay-card">
+      <h2>Solved.</h2>
+      <p id="overlayStats">Cleared in — moves</p>
+      <div class="overlay-actions">
+        <button class="btn grow" id="dismissBtn">No</button>
+        <button class="btn primary grow" id="playAgainBtn">Play again</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="overlay" id="loadingOverlay">
+    <div class="overlay-card loading-card">
+      <div class="spinner"></div>
+      <p id="loadingText">Mixing colors…</p>
+    </div>
+  </div>
+</div>
+
+<script>
+(function(){
+  const PALETTE = [
+    '#e63946', // red
+    '#f4a261', // orange
+    '#ffd166', // yellow
+    '#06d6a0', // green
+    '#118ab2', // teal
+    '#3a86ff', // blue
+    '#8338ec', // purple
+    '#ff5d8f', // pink
+    '#a9744f', // brown
+    '#8fbf3f', // lime
+    '#6c757d', // slate
+    '#d90368'  // magenta
+  ];
+
+  const DIFF = {
+    easy:     { colors: 3, empty: 2 },
+    moderate: { colors: 5, empty: 2 },
+    hard:     { colors: 7, empty: 2 }
+  };
+
+  const CAPACITY = 4;
+
+  let state = {
+    diff: 'easy',
+    tubes: [],       // array of arrays of color-index
+    colorCount: 5,
+    selected: null,
+    undoStack: [],
+    moves: 0,
+    hintsLeft: 3,
+    won: false,
+    generating: false,
+    animating: false
+  };
+
+  const board = document.getElementById('board');
+  const movesValue = document.getElementById('movesValue');
+  const hintBtn = document.getElementById('hintBtn');
+  const undoBtn = document.getElementById('undoBtn');
+  const newBtn = document.getElementById('newBtn');
+  const resetBtn = document.getElementById('resetBtn');
+  const overlay = document.getElementById('overlay');
+  const overlayStats = document.getElementById('overlayStats');
+  const loadingOverlay = document.getElementById('loadingOverlay');
+  const loadingText = document.getElementById('loadingText');
+  const difficultyButtons = document.querySelectorAll('#difficultySegment button');
+
+  function yieldToUI(){
+    return new Promise(resolve => setTimeout(resolve, 0));
+  }
+
+  function setBusy(isBusy){
+    state.generating = isBusy;
+    newBtn.disabled = isBusy;
+    undoBtn.disabled = isBusy;
+    resetBtn.disabled = isBusy;
+    hintBtn.disabled = isBusy || state.hintsLeft<=0;
+    difficultyButtons.forEach(b => b.disabled = isBusy);
+    loadingOverlay.classList.toggle('show', isBusy);
+  }
+
+  function topRun(tube){
+    if(tube.length === 0) return {color:null, count:0};
+    const color = tube[tube.length-1];
+    let count = 0;
+    for(let i=tube.length-1;i>=0;i--){
+      if(tube[i]===color) count++; else break;
+    }
+    return {color, count};
+  }
+
+  function canPour(from, to){
+    if(from===to) return false;
+    const src = state.tubes[from];
+    const dst = state.tubes[to];
+    if(src.length===0) return false;
+    if(dst.length>=CAPACITY) return false;
+    const run = topRun(src);
+    if(dst.length===0) return true;
+    return dst[dst.length-1] === run.color;
+  }
+
+  function pourAmount(from, to){
+    const src = state.tubes[from];
+    const dst = state.tubes[to];
+    const run = topRun(src);
+    const space = CAPACITY - dst.length;
+    return Math.min(run.count, space);
+  }
+
+  function doPour(from, to, record){
+    const amount = pourAmount(from, to);
+    const src = state.tubes[from];
+    const dst = state.tubes[to];
+    const color = src[src.length-1];
+    for(let i=0;i<amount;i++){
+      src.pop();
+      dst.push(color);
+    }
+    if(record){
+      state.undoStack.push({from, to, amount});
+      state.moves++;
+      movesValue.textContent = state.moves;
+    }
+  }
+
+  async function animatePour(from, to){
+    render(); // clear selection lift so start positions are the balls' resting spots
+    const amount = pourAmount(from, to);
+    if(amount<=0) return;
+
+    const fromSlotEl = board.children[from];
+    const fromTubeEl = tubeElAt(from);
+    const fromBalls = fromTubeEl ? Array.from(fromTubeEl.children).slice(-amount) : [];
+    const startRects = fromBalls.map(el => el.getBoundingClientRect());
+    const color = topRun(state.tubes[from]).color;
+
+    doPour(from, to, true);
+    render();
+
+    if(fromSlotEl) board.children[from].classList.add('pouring');
+
+    const toTubeEl = tubeElAt(to);
+    const toBalls = toTubeEl ? Array.from(toTubeEl.children).slice(-amount) : [];
+    const endRects = toBalls.map(el => el.getBoundingClientRect());
+    toBalls.forEach(el => { el.style.opacity = '0'; });
+
+    const flightDuration = 300;
+    const flightStagger = 60;
+
+    const flights = startRects.map((startRect, i) => {
+      const endRect = endRects[i] || endRects[endRects.length-1] || startRect;
+      const dx = endRect.left - startRect.left;
+      const dy = endRect.top - startRect.top;
+      const clone = document.createElement('div');
+      clone.className = 'ball pour-clone';
+      clone.style.background = ballGradient(color);
+      clone.style.width = startRect.width + 'px';
+      clone.style.height = startRect.height + 'px';
+      clone.style.left = startRect.left + 'px';
+      clone.style.top = startRect.top + 'px';
+      document.body.appendChild(clone);
+
+      const anim = clone.animate([
+        { transform:'translate(0,0)', offset:0 },
+        { transform:`translate(${dx*0.65}px, ${dy*0.4}px)`, offset:0.55 },
+        { transform:`translate(${dx}px, ${dy}px)`, offset:1 }
+      ], {
+        duration:flightDuration,
+        delay:i*flightStagger,
+        easing:'cubic-bezier(.55,0,.85,.35)',
+        fill:'forwards'
+      });
+      return anim.finished.catch(()=>{}).then(()=> clone.remove());
+    });
+
+    await Promise.all(flights);
+
+    toBalls.forEach(el => { el.style.opacity = ''; });
+    if(board.children[from]) board.children[from].classList.remove('pouring');
+  }
+
+  function undoMove(){
+    if(state.undoStack.length===0 || state.won || state.animating) return;
+    const mv = state.undoStack.pop();
+    const src = state.tubes[mv.from];
+    const dst = state.tubes[mv.to];
+    for(let i=0;i<mv.amount;i++){
+      const c = dst.pop();
+      src.push(c);
+    }
+    state.moves = Math.max(0, state.moves-1);
+    movesValue.textContent = state.moves;
+    state.selected = null;
+    render();
+  }
+
+  function isSolved(){
+    return state.tubes.every(t => t.length===0 || (t.length===CAPACITY && t.every(c=>c===t[0])));
+  }
+
+  async function generatePuzzle(diffKey){
+    const cfg = DIFF[diffKey];
+    const colorCount = cfg.colors;
+    const tubeCount = colorCount + cfg.empty;
+    const MAX_ATTEMPTS = 60;
+    const TIME_BUDGET_MS = 4000; // never let generation run away and freeze the UI
+    const startedAt = Date.now();
+
+    let lastAttempt = null;
+    for(let attempt=0; attempt<MAX_ATTEMPTS; attempt++){
+      const tubes = randomDeal(colorCount, cfg.empty);
+      lastAttempt = tubes;
+      if(isAlreadySolved(tubes)) continue;
+      if(await isSolvable(tubes, tubeCount)) return { tubes, colorCount };
+      if(Date.now() - startedAt > TIME_BUDGET_MS) break;
+      // give the browser a chance to paint the loading overlay between attempts
+      await yieldToUI();
+    }
+    // fallback: extremely unlikely to be reached, but keep the game working
+    return { tubes: lastAttempt, colorCount };
+  }
+
+  // deal colorCount*CAPACITY balls, shuffled, into colorCount tubes; add empty tubes
+  function randomDeal(colorCount, emptyCount){
+    const balls = [];
+    for(let c=0;c<colorCount;c++){
+      for(let k=0;k<CAPACITY;k++) balls.push(c);
+    }
+    // Fisher-Yates shuffle
+    for(let i=balls.length-1;i>0;i--){
+      const j = Math.floor(Math.random()*(i+1));
+      [balls[i], balls[j]] = [balls[j], balls[i]];
+    }
+    const tubes = [];
+    for(let c=0;c<colorCount;c++){
+      tubes.push(balls.slice(c*CAPACITY, (c+1)*CAPACITY));
+    }
+    for(let e=0;e<emptyCount;e++) tubes.push([]);
+    return tubes;
+  }
+
+  function isAlreadySolved(tubes){
+    return tubes.every(t => t.length===0 || (t.length===CAPACITY && t.every(c=>c===t[0])));
+  }
+
+  function serializeState(tubes){
+    return tubes.map(t=>t.join(',')).join('|');
+  }
+
+  // Heuristic-guided DFS: hunts for *a* solving path quickly rather than
+  // exhaustively proving one exists (which is what made BFS choke on
+  // 7-color boards). Moves that complete a tube or merge onto an existing
+  // partial pile are explored first, since those tend to lead to a solve
+  // fastest. Runs in small chunks and yields to the browser between them
+  // so it never freezes the page even in a rare worst case.
+  async function isSolvable(startTubes, tubeCount){
+    const NODE_CAP = 40000;
+    const NODES_PER_CHUNK = 500;
+    if(isAlreadySolved(startTubes)) return true;
+
+    const visited = new Set([serializeState(startTubes)]);
+    const stack = [startTubes];
+    let nodes = 0;
+    let sinceYield = 0;
+
+    while(stack.length){
+      const tubes = stack.pop();
+      nodes++;
+      if(nodes > NODE_CAP) return false;
+      sinceYield++;
+      if(sinceYield >= NODES_PER_CHUNK){
+        sinceYield = 0;
+        await yieldToUI();
+      }
+
+      const moves = [];
+      for(let i=0;i<tubeCount;i++){
+        if(tubes[i].length===0) continue;
+        const topColor = tubes[i][tubes[i].length-1];
+        let runCount = 0;
+        for(let k=tubes[i].length-1;k>=0;k--){ if(tubes[i][k]===topColor) runCount++; else break; }
+        const srcFullUniform = tubes[i].length===CAPACITY && runCount===CAPACITY;
+        for(let j=0;j<tubeCount;j++){
+          if(i===j) continue;
+          if(tubes[j].length>=CAPACITY) continue;
+          if(tubes[j].length>0 && tubes[j][tubes[j].length-1] !== topColor) continue;
+          if(srcFullUniform && tubes[j].length===0) continue; // moving a solved tube into empty = no progress
+          const space = CAPACITY - tubes[j].length;
+          const moveCount = Math.min(runCount, space);
+          const newTubes = tubes.map(t=>t.slice());
+          for(let m=0;m<moveCount;m++) newTubes[j].push(newTubes[i].pop());
+          const key = serializeState(newTubes);
+          if(visited.has(key)) continue;
+          let score = 0;
+          if(newTubes[j].length===CAPACITY) score += 10; // completes a tube
+          if(tubes[j].length>0) score += 3;               // merges onto a partial pile
+          if(newTubes[i].length===0) score += 1;          // frees up a tube
+          moves.push({state:newTubes, key, score});
+        }
+      }
+      if(moves.length===0) continue;
+      moves.sort((a,b)=>a.score-b.score); // lowest score pushed first, so best move is popped first
+      for(const mv of moves){
+        visited.add(mv.key);
+        if(isAlreadySolved(mv.state)) return true;
+        stack.push(mv.state);
+      }
+    }
+    return false;
+  }
+
+  async function newGame(diffKey){
+    if(state.generating || state.animating) return;
+    overlay.classList.remove('show');
+    setBusy(true);
+    loadingText.textContent = 'Mixing colors…';
+    // let the loading overlay actually paint before the (possibly heavy) generation starts
+    await yieldToUI();
+
+    const {tubes, colorCount} = await generatePuzzle(diffKey);
+
+    state.tubes = tubes;
+    state.colorCount = colorCount;
+    state.selected = null;
+    state.undoStack = [];
+    state.moves = 0;
+    state.hintsLeft = 3;
+    state.won = false;
+    movesValue.textContent = '0';
+    hintBtn.textContent = 'Hint (3)';
+    setBusy(false);
+    render();
+  }
+
+  function ballGradient(colorIdx){
+    const base = PALETTE[colorIdx];
+    return `radial-gradient(circle at 32% 28%, ${lighten(base)} 0%, ${base} 55%, ${darken(base)} 100%)`;
+  }
+
+  function tubeElAt(idx){
+    const slot = board.children[idx];
+    return slot ? slot.querySelector('.tube') : null;
+  }
+
+  function render(){
+    board.innerHTML = '';
+    state.tubes.forEach((tube, idx) => {
+      const slot = document.createElement('div');
+      slot.className = 'tube-slot';
+      if(state.selected === idx) slot.classList.add('selected');
+
+      const tubeEl = document.createElement('div');
+      tubeEl.className = 'tube';
+      tube.forEach(colorIdx => {
+        const ball = document.createElement('div');
+        ball.className = 'ball';
+        ball.style.background = ballGradient(colorIdx);
+        tubeEl.appendChild(ball);
+      });
+      slot.appendChild(tubeEl);
+
+      slot.addEventListener('click', () => handleTubeClick(idx));
+      board.appendChild(slot);
+    });
+  }
+
+  function lighten(hex){ return shade(hex, 0.5); }
+  function darken(hex){ return shade(hex, -0.35); }
+  function shade(hex, pct){
+    const num = parseInt(hex.slice(1),16);
+    let r = (num>>16) & 0xff, g=(num>>8)&0xff, b=num&0xff;
+    if(pct>0){
+      r = Math.round(r + (255-r)*pct);
+      g = Math.round(g + (255-g)*pct);
+      b = Math.round(b + (255-b)*pct);
+    } else {
+      r = Math.round(r*(1+pct));
+      g = Math.round(g*(1+pct));
+      b = Math.round(b*(1+pct));
+    }
+    return `rgb(${r},${g},${b})`;
+  }
+
+  function handleTubeClick(idx){
+    if(state.won || state.animating) return;
+    if(state.selected === null){
+      if(state.tubes[idx].length>0){
+        state.selected = idx;
+        render();
+      }
+      return;
+    }
+    if(state.selected === idx){
+      state.selected = null;
+      render();
+      return;
+    }
+    if(canPour(state.selected, idx)){
+      const from = state.selected;
+      const to = idx;
+      state.selected = null;
+      state.animating = true;
+      animatePour(from, to).then(()=>{
+        state.animating = false;
+        checkWin();
+      });
+    } else {
+      // reselect if the clicked tube has balls, else just deselect
+      if(state.tubes[idx].length>0){
+        state.selected = idx;
+      } else {
+        state.selected = null;
+      }
+      render();
+    }
+  }
+
+  function checkWin(){
+    if(isSolved()){
+      state.won = true;
+      overlayStats.textContent = `Cleared in ${state.moves} moves`;
+      overlay.classList.add('show');
+    }
+  }
+
+  function giveHint(){
+    if(state.hintsLeft<=0 || state.won || state.animating) return;
+    // find a non-trivial valid move
+    let best = null;
+    for(let i=0;i<state.tubes.length;i++){
+      for(let j=0;j<state.tubes.length;j++){
+        if(i===j) continue;
+        if(!canPour(i,j)) continue;
+        const srcSolved = state.tubes[i].length===CAPACITY && state.tubes[i].every(c=>c===state.tubes[i][0]);
+        if(srcSolved) continue; // don't suggest breaking a completed tube
+        const srcAllOneColor = new Set(state.tubes[i]).size===1;
+        if(state.tubes[j].length===0 && srcAllOneColor) continue; // pointless empty-to-empty-ish move
+        best = [i,j];
+        break;
+      }
+      if(best) break;
+    }
+    if(!best){
+      // fallback: any legal move at all
+      outer:
+      for(let i=0;i<state.tubes.length;i++){
+        for(let j=0;j<state.tubes.length;j++){
+          if(i===j) continue;
+          if(canPour(i,j)){ best=[i,j]; break outer; }
+        }
+      }
+    }
+    if(!best) return;
+    state.hintsLeft--;
+    hintBtn.textContent = `Hint (${state.hintsLeft})`;
+    if(state.hintsLeft<=0) hintBtn.disabled = true;
+    render();
+    const slots = board.querySelectorAll('.tube-slot');
+    slots[best[0]].classList.add('hint');
+    slots[best[1]].classList.add('hint');
+  }
+
+  // event wiring
+  document.getElementById('difficultySegment').addEventListener('click', (e)=>{
+    if(state.generating) return;
+    const btn = e.target.closest('button');
+    if(!btn) return;
+    document.querySelectorAll('#difficultySegment button').forEach(b=>b.classList.remove('active'));
+    btn.classList.add('active');
+    state.diff = btn.dataset.diff;
+    newGame(state.diff);
+  });
+
+  newBtn.addEventListener('click', ()=> newGame(state.diff));
+  resetBtn.addEventListener('click', ()=>{
+    if(state.generating || state.animating) return;
+    // reset to the puzzle's initial state without regenerating
+    while(state.undoStack.length>0) undoMove();
+    state.moves = 0;
+    state.hintsLeft = 3;
+    state.won = false;
+    movesValue.textContent = '0';
+    hintBtn.textContent = 'Hint (3)';
+    hintBtn.disabled = false;
+    overlay.classList.remove('show');
+    render();
+  });
+  document.getElementById('undoBtn').addEventListener('click', undoMove);
+  document.getElementById('hintBtn').addEventListener('click', giveHint);
+  document.getElementById('playAgainBtn').addEventListener('click', ()=> newGame(state.diff));
+  document.getElementById('dismissBtn').addEventListener('click', ()=> overlay.classList.remove('show'));
+
+  newGame('easy');
+})();
+</script>
+
+</body>
+</html>

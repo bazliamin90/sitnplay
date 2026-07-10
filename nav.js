@@ -11,10 +11,11 @@
 
 const PUZZLE_NAV_LINKS = [
   
+  { label: "Decant",      href: "decant.html",    match: "decant.html" },
   { label: "Dots & Boxes",href: "dotsboxes.html", match: "dotsboxes.html" },
   { label: "Flow",        href: "flow.html",      match: "flow.html"      },
   { label: "Kakuro",      href: "kakuro.html",    match: "kakuro.html"    },
-  { label: "Mancala",      href: "mancala.html",    match: "mancala.html"    },
+  { label: "Mancala",     href: "mancala.html",   match: "mancala.html"    },
   { label: "Picross",     href: "index.html",     match: "index.html"     },
   { label: "Reversi",     href: "reversi.html",   match: "reversi.html"   },
   { label: "Sudoku",      href: "sudoku.html",    match: "sudoku.html"    },
